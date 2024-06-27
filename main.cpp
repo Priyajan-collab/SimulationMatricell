@@ -10,101 +10,105 @@ using namespace sf;
 using namespace std;
 int s;
 
+class CircuitElement {
 
-class battery {
-public:
-	battery() {
-		float volatage = 1;
-	}
-	int connect() {
-
-		return 1;
-	}
-	int turnOn(int closecircuit) {
-		if (closecircuit) {
-			
+	
+public:	
+	bool is_connected = false;
+	int connected(int x) {
+		if (x)
+		{
 			return 1;
-		}
-		else {
-			return 0;
-		}
-	}
-};
-
-class wire {
-public:
-	int connectToWire(int pointA) {
-
-		if (pointA == 1) {
-
-			return 1;
-
 		}
 		else {
 			return 0;
 		};
-
-	};
+	}
+	
 	
 };
-class bulb
-{
-public:
-	int connect(int connected) {
-		if (connected) {
 
+class Battery :public CircuitElement
+{	public:
+	int operator - (CircuitElement ce) {
+		return 1;
+	}
+};
+class Load :public CircuitElement
+{	protected:
+	
+	public:
+	
+	void connected(int x) {
+		if (x)
+		{
+			is_connected= true;
+		}
+		
+	}
+	
+	int operator - (CircuitElement ce) {
+		return 1;
+		}
+	
+};
+class Wire :public CircuitElement
+{	public:
+	int operator - (CircuitElement ce) {
+		return 1;
+	}
+	int operator + (CircuitElement ce ) {
+		if (ce.is_connected) {
 			return 1;
 		}
 		else {
 			return 0;
 		}
-
 	}
-
-
-
-
 };
-
-class switchOnOff {
+class Switch :public CircuitElement
+{
 public:
-	int push(int a) {
-		return a;
-	};
+	bool is_switch_on = true;
+	int & toggle(int &a, bool click) {
+		if (click==false) {
+			is_switch_on = false;
+			a =0;
+			return a;
+		}
+		else {
+			return a;
+		}
+		
+	
+}
+
+
 };
 
-void circuit(bool switchOn) {
-	battery b1;
-	bulb bulb1;
-	wire wire1, wire2;
-	switchOnOff s1;
-	//this is the first terminal for the battery or bulb
-	int a = wire1.connectToWire(b1.connect());
-	//cout << "Battery is connected to wire1 :" << a << endl;
-	//bulb is finally connected to the wire
-	int b = bulb1.connect(a);
-	//cout << "the bulb is connected to the wire :" << b << endl;
-	//adding switch to the circuit
-	if (switchOn) {
-		 s = s1.push(1);
-	}
-	else
-	{
-		 s = s1.push(0);
-	}
-	//this is another wire from the bulb 
-	int c = wire2.connectToWire(s);
-	//finally the circuit is going to be complete
-	int d = b1.turnOn(c);
-	if (d) {
-		cout << "the bulb has turned on" << endl;
+static void circuit_connection(bool switchToggle) {
+	int a, b, c;
+	Battery b1;
+	Load l1;
+	Wire w1,w2;
+	Switch s1;
+	a = w1 - b1; // wire is connected to the battery
+	s1.toggle(a, switchToggle);
+	l1.connected(a); // One end of load is connected to the wire
+	b = w2 + l1; //wire is connected to other end of the load
+	c=b1.connected(b);//the wire is connected to other end of battery
+	if (c == 1) {
+		cout << "The circuit is on" << endl;
 	}
 	else {
-		cout << "bulb is off"<<endl;
+		cout << "circuit is  off" << endl;
 	}
-	//lot of unnecssary code uff switch lai ni bool lekdai xu 
-
+	
 }
+
+
+
+
 	int main()
 
 	{
@@ -120,30 +124,31 @@ void circuit(bool switchOn) {
 			Event event;
 				while (window.pollEvent(event)) {
 					ImGui::SFML::ProcessEvent(event);
+					circuit_connection(switchOn);
 					if (event.type == Event::Closed) {
 						window.close();
 					}
 				}
-				circuit(switchOn);
+				
 				ImGui::SFML::Update(window, deltaClock.restart());
 				ImGui::Checkbox("switch", &switchOn);
 
 				window.clear(Color::White);
 
-				CircleShape bulb;
-				bulb.setRadius(20);
-				bulb.setPosition(200, 200);
+				CircleShape Bulb;
+				Bulb.setRadius(20);
+				Bulb.setPosition(200, 200);
 				if (switchOn) {
 
-				bulb.setFillColor(Color::Red);
+				Bulb.setFillColor(Color::Red);
 				}
 				else {
-				bulb.setFillColor(Color::Black);
+				Bulb.setFillColor(Color::Black);
 
 				}
 				
 				ImGui::SFML::Render(window);
-				window.draw(bulb);
+				window.draw(Bulb);
 
 				window.display();
 		}
