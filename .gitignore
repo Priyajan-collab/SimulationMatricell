@@ -3,6 +3,12 @@
 /ImGUI
 /Test1/x64/Debug
 /x64/Debug
+/imgui
+/main
+/imgui.cpp
+/imgui.ini
+/.vscode
 /Test1.vcxproj
 /Test1.vcxproj.filters
 /Test1.sln
+
