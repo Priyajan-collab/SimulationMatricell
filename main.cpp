@@ -10,9 +10,48 @@ using namespace sf;
 using namespace std;
 int s;
 
-class CircuitElement {
 
-	
+class Draggable {
+protected:
+    bool isDragging;
+    Vector2f dragOffset;
+
+public:
+    CircleShape shape;
+
+    Draggable(int radius, float x, float y)
+        : isDragging(false) {
+        shape.setRadius(radius);
+        shape.setPosition(x, y);
+    }
+
+    virtual void draw(RenderWindow& window) {
+        window.draw(shape);
+    }
+
+    Vector2f getPosition() {
+        return shape.getPosition();
+    }
+
+    void startDragging(Vector2f mousePosition) {
+        isDragging = true;
+        dragOffset = shape.getPosition() - mousePosition;
+    }
+
+    void stopDragging() {
+        isDragging = false;
+    }
+	void setColor(const Color& color){
+		shape.setFillColor(color);
+	}
+    virtual void updatePosition(Vector2f mousePosition) {
+        if (isDragging) {
+            shape.setPosition(mousePosition + dragOffset);
+        }
+    }
+};
+
+class CircuitElement {
 public:	
 	bool is_connected = false;
 	int connected(int x) {
@@ -24,8 +63,6 @@ public:
 			return 0;
 		};
 	}
-	
-	
 };
 
 class Battery :public CircuitElement
@@ -82,8 +119,6 @@ public:
 		
 	
 }
-
-
 };
 
 static void circuit_connection(bool switchToggle) {
@@ -106,17 +141,12 @@ static void circuit_connection(bool switchToggle) {
 	
 }
 
-
-
-
 	int main()
 
 	{
 
 		bool switchOn = true;
-		
-		
-		
+		Draggable Bulb(20,200,200);
 		RenderWindow window( VideoMode(512, 512), "Simulation", Style::Close | Style::Resize);
 		ImGui::SFML::Init(window);
 		Clock deltaClock;
@@ -128,27 +158,50 @@ static void circuit_connection(bool switchToggle) {
 					if (event.type == Event::Closed) {
 						window.close();
 					}
+					else if (event.type == Event::MouseButtonPressed) {
+						if (event.mouseButton.button == Mouse::Left) {
+							Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+							// for (auto& resistor : resistors) {
+								if (Bulb.shape.getGlobalBounds().contains(mousePosition)) {
+									Bulb.startDragging(mousePosition);
+								// }
+							}
+						}    
+					}
+					else if (event.type == Event::MouseButtonReleased) {
+						if (event.mouseButton.button == Mouse::Left) {
+							// for (auto& resistor : resistors) {
+								Bulb.stopDragging();
+							// }
+						}
+					}
 				}
+				if (Mouse::isButtonPressed(Mouse::Left)) {
+					Vector2f mousePos(Mouse::getPosition(window));
+					// for (auto& resistor : resistors) {
+						Bulb.updatePosition(mousePos);
+					// }
+        		}
 				
 				ImGui::SFML::Update(window, deltaClock.restart());
 				ImGui::Checkbox("switch", &switchOn);
 
 				window.clear(Color::White);
 
-				CircleShape Bulb;
-				Bulb.setRadius(20);
-				Bulb.setPosition(200, 200);
+				
+				// Bulb.setRadius(20);
+				// Bulb.setPosition(200, 200);
 				if (switchOn) {
 
-				Bulb.setFillColor(Color::Red);
+				Bulb.setColor(Color::Red);
 				}
 				else {
-				Bulb.setFillColor(Color::Black);
+				Bulb.setColor(Color::Black);
 
 				}
 				
 				ImGui::SFML::Render(window);
-				window.draw(Bulb);
+				Bulb.draw(window);
 
 				window.display();
 		}
