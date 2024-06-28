@@ -3,3 +3,8 @@
 /ImGUI
 /Test1/x64/Debug
 /x64/Debug
+/imgui
+/main
+/imgui.cpp
+/imgui.ini
+/.vscode
