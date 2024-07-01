@@ -371,3 +371,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Project3.vcxproj
+/Project3.vcxproj.filters
