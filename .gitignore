@@ -9,9 +9,9 @@
 *.user
 *.userosscache
 *.sln.docstates
-ImGUI/
-lib/
-include/
+/ImGUI
+/lib
+/include
 *.dll
 
 
