@@ -9,9 +9,9 @@
 *.user
 *.userosscache
 *.sln.docstates
-ImGUI/
-lib/
-include/
+/ImGUI
+/lib
+/include
 *.dll
 
 
@@ -371,3 +371,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Project3.vcxproj
+/Project3.vcxproj.filters
