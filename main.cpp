@@ -6,9 +6,12 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
+#include "circuitElement.h"
+#include <SFML/Graphics.hpp>
+//#include "battery.h"
 using namespace sf;
 using namespace std;
- int s = 0;
+ int batteryNumber = 0;
 
 
 class Draggable {
@@ -53,23 +56,13 @@ public:
 	}
 };
 
-class CircuitElement {
-public:
-	bool is_connected = false;
-	int connected(int x) {
-		if (x)
-		{
-			return 1;
-		}
-		else {
-			return 0;
-		};
-	}
-};
 
-class Battery :public CircuitElement
-{
+
+
+class Battery :public CircuitElement , public CircleShape
+{	
 public:
+	
 	int operator - (CircuitElement ce) {
 		return 1;
 	}
@@ -108,7 +101,7 @@ public:
 		}
 	}
 };
-class Switch :public CircuitElement
+class Switch :public CircuitElement, public RectangleShape
 {
 public:
 	bool is_switch_on = true;
@@ -135,12 +128,13 @@ static void circuit_connection(bool switchToggle) {
 	switch_toggle = new Switch[ns];
 	wire = new Wire[nw];
 	load = new Load[nl];
-	battery = new Battery[nb];
+	battery = new Battery[batteryNumber];
+	
 	//Battery b1;
 	//Load l1;
 	//Wire w1, w2;
 	//Switch s1;
-	a = (*wire) - *battery; // wire is connected to the battery
+	a = (*wire) - *(battery+0); // wire is connected to the battery
 	(*switch_toggle).toggle(a, switchToggle);
 	(*load).connected(a); // One end of load is connected to the wire
 	b = (*(wire+1)) + *load; //wire is connected to other end of the load
@@ -162,6 +156,7 @@ int main()
 	bool switchOn = true;
 	bool batteryadd = false;
 	Draggable Bulb(20, 200, 200);
+	
 
 	RenderWindow window(VideoMode(512, 512), "Simulation", Style::Close | Style::Resize);
 	//to draw a line
@@ -179,13 +174,15 @@ int main()
 
 
 	ImGui::SFML::Init(window);
-	vector<CircleShape>c;
+	vector<Battery>c;
 
 	Clock deltaClock;
 	while (window.isOpen()) {
 		Event event;
 		circuit_connection(switchOn);
 		
+		
+
 
 		while (window.pollEvent(event)) {
 			ImGui::SFML::ProcessEvent(event);
@@ -215,9 +212,9 @@ int main()
 				if (event.mouseButton.button == Mouse::Left && batteryadd) {
 					
 				
-					for (int i = 0; i < s; i++) {
+					for (int i = 0; i < batteryNumber; i++) {
 
-						c.push_back(CircleShape());
+						c.push_back(Battery());
 						c.back().setRadius(20);
 						c.back().setFillColor(Color::Black);
 				}
@@ -258,8 +255,8 @@ int main()
 		if (ImGui::Button("Battery")) {
 			cout << "added battery"<<endl;
 			batteryadd = !batteryadd;
-			s++;
-			cout << s << endl;
+			batteryNumber++;
+			cout << batteryNumber << endl;
 		}
 		if (ImGui::Button("Line"))
 		{
@@ -286,6 +283,7 @@ int main()
 		window.draw(line,2,Lines);
 		ImGui::SFML::Render(window);
 		Bulb.draw(window);
+
 		window.display();
 	}
 	ImGui::SFML::Shutdown();
