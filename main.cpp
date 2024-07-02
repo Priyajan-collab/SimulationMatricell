@@ -177,10 +177,6 @@ int main()
 	//creating logic to add multiple batteries using <vector>
 	
 
-
-	ImGui::SFML::Init(window);
-	vector<CircleShape>c;
-
 	Clock deltaClock;
 	while (window.isOpen()) {
 		Event event;
@@ -200,6 +196,23 @@ int main()
 						Bulb.startDragging(mousePosition);
 						// }
 					}
+					else if (event.type == Event::MouseButtonPressed) {
+						if (event.mouseButton.button == Mouse::Left) {
+							Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+							// for (auto& resistor : resistors) {
+								if (Bulb.shape.getGlobalBounds().contains(mousePosition)) {
+									Bulb.startDragging(mousePosition);
+								// }
+							}
+						}    
+					}
+					else if (event.type == Event::MouseButtonReleased) {
+						if (event.mouseButton.button == Mouse::Left) {
+							// for (auto& resistor : resistors) {
+								Bulb.stopDragging();
+							// }
+						}
+					}
 				}
 				//to draw line
 				
@@ -211,7 +224,6 @@ int main()
 					refposition1 =
 						mousePosition;
 				}
-
 				if (event.mouseButton.button == Mouse::Left && batteryadd) {
 					
 				
