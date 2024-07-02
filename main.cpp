@@ -1,8 +1,7 @@
 #include <iostream>
-
 #include "imgui.h"
 #include "imgui-SFML.h"
-#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
@@ -11,17 +10,36 @@ using namespace std;
  int s = 0;
 
 
+const int numRows = 30;  
+const int numCols = 40;  
+const float cellSize = 20.0f;  // This is like pixels
+int col = 0;
+int row = 0;
+
+struct Cell {
+    RectangleShape shape;
+
+    Cell()  {
+        shape.setSize(Vector2f(cellSize, cellSize));
+        shape.setFillColor(Color::White);
+        shape.setOutlineThickness(1.0f);
+        shape.setOutlineColor(Color::Black);
+    }
+};
+
+ //2D vector
+vector<vector<Cell>> grid(numRows, vector<Cell>(numCols));
+
 class Draggable {
 protected:
 	bool isDragging;
 	Vector2f dragOffset;
 
 public:
-	CircleShape shape;
-
-	Draggable(int radius, float x, float y)
+	RectangleShape shape;
+	Draggable(int width,int height, float x, float y)
 		: isDragging(false) {
-		shape.setRadius(radius);
+		shape.setSize(Vector2f(width,height));
 		shape.setPosition(x, y);
 	}
 
@@ -37,9 +55,6 @@ public:
 		isDragging = true;
 		dragOffset = shape.getPosition() - mousePosition;
 	}
-	
-	
-
 	void stopDragging() {
 		isDragging = false;
 	}
@@ -47,10 +62,20 @@ public:
 		shape.setFillColor(color);
 	}
 	virtual void updatePosition(Vector2f mousePosition) {
-		if (isDragging) {
-			shape.setPosition(mousePosition + dragOffset);
-		}
-	}
+		Vector2f position;
+    if (row >= 0 && row < numRows && col >= 0 && col < numCols) {
+        float centerX = grid[row][col].shape.getPosition().x + grid[row][col].shape.getSize().x / 2.0f;
+		float centerY = grid[row][col].shape.getPosition().y + grid[row][col].shape.getSize().y;
+
+		position.x = centerX ;
+		position.y = centerY ;
+    }
+
+    if (isDragging) {
+        shape.setPosition(position + dragOffset);
+    }
+}
+
 };
 
 class CircuitElement {
@@ -154,16 +179,45 @@ static void circuit_connection(bool switchToggle) {
 
 }
 
-int main()
 
+void handleHover(RenderWindow &window) {
+    Vector2i mousePos = Mouse::getPosition(window);
+    col = mousePos.x / cellSize;
+    row = mousePos.y / cellSize;
+
+	cout<<"Col: "<<col<<"Row: "<<row<<endl;
+}
+
+void initializeGrid() {
+    for (int row = 0; row < numRows; row++) {
+        for (int col = 0; col < numCols; col++) {
+            grid[row][col].shape.setPosition(col * cellSize, row * cellSize);
+        }
+    }
+}
+
+void drawGrid(RenderWindow& window) {
+    for (int row = 0; row < numRows; ++row) {
+        for (int col = 0; col < numCols; ++col) {
+            window.draw(grid[row][col].shape);
+        }
+    }
+}
+
+int main()
 {
 	bool lineOn = false;
 	bool once = true;
 	bool switchOn = true;
 	bool batteryadd = false;
-	Draggable Bulb(20, 200, 200);
+	Draggable Bulb(45,20, 200, 200);
 
-	RenderWindow window(VideoMode(512, 512), "Simulation", Style::Close | Style::Resize);
+	//Test
+	Vertex TestLine[2];
+	TestLine[0].position =  Vector2f(0, 0);
+	TestLine[1].position =  Vector2f(0, 1);
+	RenderWindow window(VideoMode(numCols * cellSize, numRows * cellSize), "Simulation", Style::Close | Style::Resize);
+	initializeGrid();
 	//to draw a line
 	Vertex line[2];
 	line[0].position = Vector2f(0, 0);
@@ -207,6 +261,7 @@ int main()
 				if (event.mouseButton.button == Mouse::Left && lineOn) {
 					Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
 					//gets initial point to draw line
+					
 					Vector2f bulbPos(Bulb.getPosition().x, Bulb.getPosition().y);
 					refposition1 =
 						mousePosition;
@@ -239,9 +294,6 @@ int main()
 					//to get final position for the line
 					Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
 					refposition2 = mousePosition;
-					
-
-					
 				}
 			}
 			
@@ -267,7 +319,8 @@ int main()
 			cout << lineOn;
 		}
 
-		window.clear(Color::White);
+		window.clear(Color::Black);
+		drawGrid(window);
 
 
 		// Bulb.setRadius(20);
@@ -283,8 +336,10 @@ int main()
 		for (int i = 0; i < c.size(); i++) {
 			window.draw(c[i]);
 		}
+		window.draw(TestLine,2,Lines);
 		window.draw(line,2,Lines);
 		ImGui::SFML::Render(window);
+		handleHover(window);
 		Bulb.draw(window);
 		window.display();
 	}
