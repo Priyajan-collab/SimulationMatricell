@@ -8,8 +8,10 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
 
+
 using namespace sf;
 using namespace std;
+
 
 const int numRows = 30;
 const int numCols = 40;
@@ -26,6 +28,7 @@ struct Cell {
     }
 };
 
+
 vector<vector<Cell>> grid(numRows, vector<Cell>(numCols));
 
 class Draggable {
@@ -34,6 +37,7 @@ protected:
     Vector2f dragOffset;
 
 public:
+
     RectangleShape shape;
 
     Draggable(int width, int height, float x, float y)
@@ -82,6 +86,7 @@ public:
     int connect() const override {
         return 1;
     }
+
 };
 
 class Load : public CircuitElement {
@@ -106,7 +111,9 @@ public:
     }
 };
 
+
 class Switch : public CircuitElement {
+
 public:
     bool is_switch_on = true;
 
@@ -123,8 +130,10 @@ public:
     }
 };
 
+
 struct Line {
     Vertex points[2];
+
 
     Line(Vector2f start, Vector2f end) {
         points[0].position = start;
@@ -133,6 +142,7 @@ struct Line {
         points[1].color = Color::Black;
     }
 };
+
 
 void circuitConnection(bool switchToggle) {
     int a, b, c;
@@ -160,6 +170,7 @@ void handleHover(RenderWindow& window, int& row, int& col) {
     col = mousePos.x / cellSize;
     row = mousePos.y / cellSize;
     cout << "Col: " << col << " Row: " << row << endl;
+
 }
 
 void initializeGrid() {
@@ -171,6 +182,7 @@ void initializeGrid() {
 }
 
 void drawGrid(RenderWindow& window) {
+
     for (int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numCols; ++col) {
             window.draw(grid[row][col].shape);
@@ -281,3 +293,4 @@ int main() {
     ImGui::SFML::Shutdown();
     return 0;
 }
+
