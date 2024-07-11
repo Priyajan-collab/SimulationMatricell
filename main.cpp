@@ -161,6 +161,7 @@ static void circuit_connection(bool switchToggle) {
 	wire = new Wire[nw];
 	load = new Load[nl];
 	battery = new Battery[batteryNumber];
+
 	//Battery b1;
 	//Load l1;
 	//Wire w1, w2;
@@ -180,10 +181,12 @@ static void circuit_connection(bool switchToggle) {
 }
 
 
+
 void handleHover(RenderWindow& window) {
 	Vector2i mousePos = Mouse::getPosition(window);
 	col = mousePos.x / cellSize;
 	row = mousePos.y / cellSize;
+
 
 	cout << "Col: " << col << "Row: " << row << endl;
 }
