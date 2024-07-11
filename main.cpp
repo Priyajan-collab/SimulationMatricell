@@ -187,6 +187,7 @@ void handleHover(RenderWindow& window) {
 	col = mousePos.x / cellSize;
 	row = mousePos.y / cellSize;
 
+
 	cout << "Col: " << col << "Row: " << row << endl;
 }
 
