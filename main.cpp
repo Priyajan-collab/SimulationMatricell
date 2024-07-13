@@ -190,6 +190,130 @@ void drawGrid(RenderWindow& window) {
     }
 }
 
+class Button {
+public:
+    Button() {} // Default constructor
+
+    Button(string text, Vector2f size, int charSize, Color bgColor, Color textColor) {
+        this->text.setString(text);
+        this->text.setFillColor(textColor);
+        this->text.setCharacterSize(charSize);
+
+        buttonShape.setSize(size);
+        buttonShape.setFillColor(bgColor);
+    }
+
+    void setFont(Font& font) {
+        text.setFont(font);
+    }
+
+    void setBackColor(Color color) {
+        buttonShape.setFillColor(color);
+    }
+
+    void setTextColor(Color color) {
+        text.setFillColor(color);
+    }
+
+    void setPosition(Vector2f pos) {
+       buttonShape.setPosition(pos);
+        // Center text within the button
+        float xPos = pos.x + (buttonShape.getSize().x - text.getLocalBounds().width) / 2;
+        float yPos = pos.y + (buttonShape.getSize().y - text.getLocalBounds().height) / 2 - text.getCharacterSize() / 4;
+        text.setPosition(xPos, yPos);
+    }
+
+    void drawTo(RenderWindow& window) {
+        window.draw(buttonShape);
+        window.draw(text);
+    }
+
+    bool isMouseOver(RenderWindow& window) {
+        Vector2f mousePos = window.mapPixelToCoords(Mouse::getPosition(window));
+        FloatRect bounds = buttonShape.getGlobalBounds();
+        return bounds.contains(mousePos);
+    }
+
+    bool isMouseClicked(RenderWindow& window) {
+        if (isMouseOver(window) && Mouse::isButtonPressed(Mouse::Left)) {
+            return true;
+        }
+        return false;
+    }
+
+private:
+    RectangleShape buttonShape;
+    Text text;
+};
+
+class MenuList {
+private:
+    bool isOpen; // Changed from int to bool to track open/close state
+    vector<Texture> textures;
+    vector<Sprite> sprites;
+    vector<ImTextureID> textureIDs;
+    int selectedItem; // Track selected item index
+
+public:
+    MenuList() : isOpen(false), selectedItem(-1) {} // Default constructor, menu is initially closed
+
+    void setTextures(const vector<Texture>& texs) {
+        textures = texs;
+
+        sprites.clear();
+        textureIDs.clear();
+
+        for (const auto& texture : textures) {
+            Sprite sprite;
+            sprite.setTexture(texture);
+            sprites.push_back(sprite);
+            textureIDs.push_back(reinterpret_cast<void*>(sprites.back().getTexture()->getNativeHandle()));
+        }
+    }
+
+    void drawMenu() {
+        if (isOpen) {
+            ImGui::Begin("Menu", &isOpen); // Pass the address of isOpen
+
+            ImGui::Columns(2, nullptr, false); // 2 columns, auto-width, no border
+
+            for (size_t i = 0; i < textureIDs.size(); ++i) {
+                ImGui::Image(textureIDs[i], ImVec2(100, 50)); // Fixed size of 150x100
+
+                if (ImGui::IsItemClicked()) {
+                    selectedItem = i;
+                }
+
+                ImGui::NextColumn(); // Move to next column
+            }
+
+            ImGui::End();
+        }
+    }
+
+    void toggle() {
+        isOpen = !isOpen;
+    }
+
+    bool isOpened() const {
+        return isOpen;
+    }
+
+    int getSelectedItemIndex() const {
+        return selectedItem;
+    }
+
+    Sprite& getSelectedSprite() {
+        if (selectedItem != -1) {
+            return sprites[selectedItem];
+        } else {
+             //returning a default sprite here if no sprite is loaded
+            static Sprite defaultSprite;
+            return defaultSprite;
+        }
+    }
+};
+
 int main() {
     int batteryNumber = 0;
     bool lineOn = false;
@@ -204,6 +328,42 @@ int main() {
     initializeGrid();
 
     ImGui::SFML::Init(window);
+
+     
+     //button ko
+     Font font;
+    if (!font.loadFromFile("This Cafe.ttf")) {
+        return -1;
+    }
+
+     Button btn1("Icons", {200, 50}, 20, Color::Green, Color::Black);
+    btn1.setFont(font);
+    btn1.setPosition({10, 10});
+
+    MenuList menu;
+    vector<Texture> textures;
+    vector<string> imagePaths = {
+        "textures/ResistorIcon.png",
+        "textures/CapacitorIcon.png",
+        "textures/InductorIcon.png",
+         "textures/ResistorIcon.png",
+        "textures/CapacitorIcon.png",
+        "textures/InductorIcon.png"
+    };
+
+    // Load textures
+    for (const auto& path : imagePaths) {
+        Texture texture;
+        if (texture.loadFromFile(path)) {
+            textures.push_back(texture);
+        } else {
+            cout << "Error in loading image: " << path << endl;
+        }
+    }
+
+    // Set textures for menu
+    menu.setTextures(textures);
+
     Clock deltaClock;
 
     while (window.isOpen()) {
@@ -265,8 +425,23 @@ int main() {
             lineOn = true;
         }
 
+        //button ko
+          if (btn1.isMouseOver(window)) {
+            btn1.setBackColor(Color::White);
+        } else {
+            btn1.setBackColor(Color::Green);
+        }
+
+        if (btn1.isMouseClicked(window)) {
+            cout << "Button clicked!" << endl;
+            menu.toggle(); // Toggle menu visibility
+        }
+
+
         window.clear(Color::Black);
         drawGrid(window);
+
+        
 
         if (switchOn) {
             Bulb.setColor(Color::Red);
@@ -282,6 +457,17 @@ int main() {
         for (auto& line : lines) {
             window.draw(line.points, 2, Lines);
         }
+
+        btn1.drawTo(window);
+        menu.drawMenu();
+
+        
+        // Render selected item's image at the center of the window
+       Sprite& selectedSprite = menu.getSelectedSprite();
+       selectedSprite.setScale(50.0f / selectedSprite.getLocalBounds().width,  35.0f / selectedSprite.getLocalBounds().height);
+       selectedSprite.setPosition(window.getSize().x / 2 - 25,window.getSize().y / 2 - 17.5f); //randomass size
+        window.draw(selectedSprite);
+
 
         ImGui::SFML::Render(window);
         int row = 0, col = 0;
