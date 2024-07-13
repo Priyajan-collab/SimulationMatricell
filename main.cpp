@@ -314,7 +314,6 @@ public:
     }
 };
 
-
 int main() {
     int batteryNumber = 0;
     bool lineOn = false;
@@ -364,7 +363,6 @@ int main() {
 
     // Set textures for menu
     menu.setTextures(textures);
-
 
     Clock deltaClock;
 
@@ -470,6 +468,7 @@ int main() {
        selectedSprite.setPosition(window.getSize().x / 2 - 25,window.getSize().y / 2 - 17.5f); //randomass size
         window.draw(selectedSprite);
 
+
         ImGui::SFML::Render(window);
         int row = 0, col = 0;
         handleHover(window, row, col);
@@ -480,3 +479,4 @@ int main() {
     ImGui::SFML::Shutdown();
     return 0;
 }
+
