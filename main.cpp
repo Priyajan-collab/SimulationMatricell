@@ -314,6 +314,7 @@ public:
     }
 };
 
+
 class Components {
 public:
     RectangleShape rect;
@@ -370,6 +371,7 @@ public:
         return bounds.contains(mousePos);
     }
 };
+
 
 
 
@@ -476,8 +478,9 @@ int main() {
                 }
             }
             else if (event.type == Event::MouseButtonReleased) {
+                 Bulb.stopDragging();
                 if (event.mouseButton.button == Mouse::Left) {
-                    Bulb.stopDragging();
+                   
                     if (lineOn) {
                         lines.back().points[1].position = Vector2f(event.mouseButton.x, event.mouseButton.y);
                         lineOn = false;
@@ -488,8 +491,7 @@ int main() {
 
         if (Mouse::isButtonPressed(Mouse::Left)) {
             Vector2f mousePos(Mouse::getPosition(window));
-            Bulb.updatePosition(mousePos);
-
+            
             if (lineOn && !lines.empty()) {
                 lines.back().points[1].position = mousePos;
             }
@@ -502,7 +504,7 @@ int main() {
             batteryNumber++;
         }
         if (ImGui::Button("Draw Line")) {
-            lineOn = true;
+            lineOn =!lineOn;
         }
 
         //button ko
@@ -562,6 +564,7 @@ int main() {
             }
         }
 
+
         for (auto& component : components) {
             if (&component == selectedComponent) {
                 if (isPlacingComponent) {
@@ -572,6 +575,7 @@ int main() {
             }
             component.draw(window);
         }
+
         ImGui::SFML::Render(window);
         int row = 0, col = 0;
         handleHover(window, row, col);
@@ -582,3 +586,4 @@ int main() {
     ImGui::SFML::Shutdown();
     return 0;
 }
+
