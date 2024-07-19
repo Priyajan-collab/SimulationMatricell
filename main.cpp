@@ -278,7 +278,7 @@ public:
             ImGui::Columns(2, nullptr, false); // 2 columns, auto-width, no border
 
             for (size_t i = 0; i < textureIDs.size(); ++i) {
-                ImGui::Image(textureIDs[i], ImVec2(100, 50)); // Fixed size of 150x100
+                ImGui::Image(textureIDs[i], ImVec2(100, 50)); // Fixed size of 100x50
 
                 if (ImGui::IsItemClicked()) {
                     selectedItem = i;
@@ -307,12 +307,75 @@ public:
         if (selectedItem != -1) {
             return sprites[selectedItem];
         } else {
-             //returning a default sprite here if no sprite is loaded
+            // Returning a default sprite here if no sprite is loaded
             static Sprite defaultSprite;
             return defaultSprite;
         }
     }
 };
+
+
+class Components {
+public:
+    RectangleShape rect;
+    Sprite spriterect;
+    Texture texturerect;
+    Vector2i MousePos;
+    bool isDragging;
+
+    Components() : isDragging(false) {}
+
+    void setSpriteTexture(const Texture& texture) {
+        spriterect.setTexture(texture);
+
+        // Scale the sprite to match the rectangle shape
+        FloatRect spriteBounds = spriterect.getLocalBounds();
+        Vector2f scaleFactors(
+            rect.getSize().x / spriteBounds.width,
+            rect.getSize().y / spriteBounds.height
+        );
+        spriterect.setScale(scaleFactors);
+        spriterect.setPosition(rect.getPosition());
+    }
+
+    void draw(RenderWindow& window) {
+       // window.draw(rect); // Drawing the rectangle make the white background of the rec visible
+        window.draw(spriterect);
+    }
+
+    void init(Vector2f size, Vector2f position) {
+        // Initialize the rectangle shape
+        rect.setSize(size);
+        rect.setPosition(position);
+    }
+
+    void updatePosition(RenderWindow& window) {
+        if (isDragging) {
+            MousePos = Mouse::getPosition(window);
+            rect.setPosition(static_cast<Vector2f>(MousePos));
+            spriterect.setPosition(rect.getPosition());
+        }
+    }
+
+    void startDragging() {
+        isDragging = true;
+    }
+
+    void stopDragging() {
+        isDragging = false;
+    }
+
+    bool isMouseOver(RenderWindow& window) {
+        Vector2f mousePos = window.mapPixelToCoords(Mouse::getPosition(window));
+        FloatRect bounds = rect.getGlobalBounds();
+        return bounds.contains(mousePos);
+    }
+};
+
+
+
+
+
 
 int main() {
     int batteryNumber = 0;
@@ -332,7 +395,7 @@ int main() {
      
      //button ko
      Font font;
-    if (!font.loadFromFile("This Cafe.ttf")) {
+    if (!font.loadFromFile("ThisCafe.ttf")) {
         return -1;
     }
 
@@ -348,7 +411,8 @@ int main() {
         "textures/InductorIcon.png",
          "textures/ResistorIcon.png",
         "textures/CapacitorIcon.png",
-        "textures/InductorIcon.png"
+        "textures/InductorIcon.png",
+        "textures/DiodeIcon.png"
     };
 
     // Load textures
@@ -366,6 +430,11 @@ int main() {
 
     Clock deltaClock;
 
+    vector<Components> components;
+    Components* selectedComponent = nullptr; // Pointer to track the selected component
+    int lastSelectedItemIndex = -1; // Track the last selected item index
+    bool isPlacingComponent = false; // Flag to indicate if placing a component
+
     while (window.isOpen()) {
         Event event;
         circuitConnection(switchOn);
@@ -374,6 +443,20 @@ int main() {
             ImGui::SFML::ProcessEvent(event);
             if (event.type == Event::Closed) {
                 window.close();
+            }
+             if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
+                if (selectedComponent && selectedComponent->isMouseOver(window)) {
+                    selectedComponent->startDragging();
+                } else if (btn1.isMouseClicked(window)) {
+                    menu.toggle();
+                }
+            }
+
+             if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left) {
+                if (selectedComponent) {
+                    selectedComponent->stopDragging();
+                    isPlacingComponent = true; // Set to true when placing
+                }
             }
             else if (event.type == Event::MouseButtonPressed) {
                 if (event.mouseButton.button == Mouse::Left) {
@@ -396,8 +479,9 @@ int main() {
                 }
             }
             else if (event.type == Event::MouseButtonReleased) {
+                 Bulb.stopDragging();
                 if (event.mouseButton.button == Mouse::Left) {
-                    Bulb.stopDragging();
+                   
                     if (lineOn) {
                         lines.back().points[1].position = Vector2f(event.mouseButton.x, event.mouseButton.y);
                         lineOn = false;
@@ -408,8 +492,7 @@ int main() {
 
         if (Mouse::isButtonPressed(Mouse::Left)) {
             Vector2f mousePos(Mouse::getPosition(window));
-            Bulb.updatePosition(mousePos);
-
+            
             if (lineOn && !lines.empty()) {
                 lines.back().points[1].position = mousePos;
             }
@@ -422,7 +505,7 @@ int main() {
             batteryNumber++;
         }
         if (ImGui::Button("Draw Line")) {
-            lineOn = true;
+            lineOn =!lineOn;
         }
 
         //button ko
@@ -433,13 +516,14 @@ int main() {
         }
 
         if (btn1.isMouseClicked(window)) {
-            cout << "Button clicked!" << endl;
             menu.toggle(); // Toggle menu visibility
         }
 
 
         window.clear(Color::Black);
         drawGrid(window);
+        btn1.drawTo(window);
+        menu.drawMenu();
 
         
 
@@ -458,15 +542,40 @@ int main() {
             window.draw(line.points, 2, Lines);
         }
 
-        btn1.drawTo(window);
-        menu.drawMenu();
 
-        
-        // Render selected item's image at the center of the window
-       Sprite& selectedSprite = menu.getSelectedSprite();
-       selectedSprite.setScale(50.0f / selectedSprite.getLocalBounds().width,  35.0f / selectedSprite.getLocalBounds().height);
-       selectedSprite.setPosition(window.getSize().x / 2 - 25,window.getSize().y / 2 - 17.5f); //randomass size
-        window.draw(selectedSprite);
+         int selectedItemIndex = menu.getSelectedItemIndex();
+        if (selectedItemIndex != -1) {
+            if (selectedItemIndex != lastSelectedItemIndex) {//creates a new element if a new item is selected
+                
+                Components component;
+                 component.init(Vector2f(100.f, 50.f), Vector2f(300.f, 150.f));//sets the intial size and postion
+             
+                component.setSpriteTexture(textures[selectedItemIndex]);
+                components.push_back(component);
+                selectedComponent = &components.back(); // Set as the  new selected component
+                lastSelectedItemIndex = selectedItemIndex; // Update the last selected index
+                isPlacingComponent = false; // Reset the flag
+            }
+        } else {
+            // If no item is selected, delete the current component
+            if (selectedComponent) {
+                // Cleanup or reset the selected component if necessary
+                selectedComponent = nullptr;
+                lastSelectedItemIndex = -1; // Reset the last selected index
+            }
+        }
+
+
+        for (auto& component : components) {
+            if (&component == selectedComponent) {
+                if (isPlacingComponent) {
+                    component.stopDragging();
+                    isPlacingComponent = false;
+                }
+                component.updatePosition(window);
+            }
+            component.draw(window);
+        }
 
 
         ImGui::SFML::Render(window);
