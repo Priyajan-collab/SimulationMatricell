@@ -376,6 +376,7 @@ public:
 
 
 
+
 int main() {
     int batteryNumber = 0;
     bool lineOn = false;
@@ -575,6 +576,7 @@ int main() {
             }
             component.draw(window);
         }
+
 
         ImGui::SFML::Render(window);
         int row = 0, col = 0;
