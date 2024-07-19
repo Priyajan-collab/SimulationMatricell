@@ -8,29 +8,48 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
 
-
 using namespace sf;
 using namespace std;
 
-
-const int numRows = 30;
-const int numCols = 40;
+const int numRows = 50;
+const int numCols = 70;
 const float cellSize = 20.0f;
+int col = 0;
+int row = 0;
 
 struct Cell {
-    RectangleShape shape;
+    Vector2f position;
+    ImU32 color;
 
-    Cell() {
-        shape.setSize(Vector2f(cellSize, cellSize));
-        shape.setFillColor(Color::White);
-        shape.setOutlineThickness(1.0f);
-        shape.setOutlineColor(Color::Black);
-    }
+    Cell(float x, float y, ImU32 c)
+        : position(x, y), color(c) {}
 };
 
+vector<vector<Cell>> grid;
 
-vector<vector<Cell>> grid(numRows, vector<Cell>(numCols));
+void initializeGrid() {
+    grid.clear();
+    for (int row = 0; row < numRows; row++) {
+        vector<Cell> rowCells;
+        for (int col = 0; col < numCols; col++) {
+            rowCells.emplace_back(col * cellSize, row * cellSize, IM_COL32(255, 255, 255, 255));
+        }
+        grid.push_back(rowCells);
+    }
+}
 
+void drawGrid(ImDrawList* drawList, const ImVec2& offset) {
+    for (const auto& rowCells : grid) {
+        for (const auto& cell : rowCells) {
+            drawList->AddRectFilled(ImVec2(cell.position.x + offset.x, cell.position.y + offset.y),
+                                    ImVec2(cell.position.x + cellSize + offset.x, cell.position.y + cellSize + offset.y),
+                                    cell.color);
+            drawList->AddRect(ImVec2(cell.position.x + offset.x, cell.position.y + offset.y),
+                              ImVec2(cell.position.x + cellSize + offset.x, cell.position.y + cellSize + offset.y),
+                              IM_COL32(128, 128, 128, 255));
+        }
+    }
+}
 class Draggable {
 protected:
     bool isDragging;
@@ -68,10 +87,29 @@ public:
     }
 
     void updatePosition(Vector2f mousePosition) {
-        if (isDragging) {
-            shape.setPosition(mousePosition + dragOffset);
-        }
+    Vector2f position;
+
+    // Calculate grid cell coordinates
+    int col = static_cast<int>((mousePosition.x + dragOffset.x - cellSize / 2.0f) / cellSize);
+    int row = static_cast<int>((mousePosition.y + dragOffset.y - cellSize / 2.0f) / cellSize);
+
+    if (row >= 0 && row < numRows && col >= 0 && col < numCols) {
+        // Calculate position to place object at the center of the grid cell
+        float centerX = col * cellSize + cellSize / 2.0f - shape.getSize().x / 2.0f;
+        float centerY = row * cellSize + cellSize / 2.0f - shape.getSize().y / 2.0f;
+
+        // Set the position accordingly
+        position.x = centerX;
+        position.y = centerY;
     }
+
+    if (isDragging) {
+        shape.setPosition(position - dragOffset);
+    }
+}
+
+
+
 };
 
 class CircuitElement {
@@ -143,7 +181,6 @@ struct Line {
     }
 };
 
-
 void circuitConnection(bool switchToggle) {
     int a, b, c;
     unique_ptr<Battery[]> battery(new Battery[1]);
@@ -158,160 +195,12 @@ void circuitConnection(bool switchToggle) {
     c = battery[0].connect() - b;
 
     if (c == 1) {
-        cout << "The circuit is on" << endl;
+        // cout << "The circuit is on" << endl;
     }
     else {
-        cout << "The circuit is off" << endl;
+        // cout << "The circuit is off" << endl;
     }
 }
-
-void handleHover(RenderWindow& window, int& row, int& col) {
-    Vector2i mousePos = Mouse::getPosition(window);
-    col = mousePos.x / cellSize;
-    row = mousePos.y / cellSize;
-
-}
-
-void initializeGrid() {
-    for (int row = 0; row < numRows; row++) {
-        for (int col = 0; col < numCols; col++) {
-            grid[row][col].shape.setPosition(col * cellSize, row * cellSize);
-        }
-    }
-}
-
-void drawGrid(RenderWindow& window) {
-
-    for (int row = 0; row < numRows; ++row) {
-        for (int col = 0; col < numCols; ++col) {
-            window.draw(grid[row][col].shape);
-        }
-    }
-}
-
-class Button {
-public:
-    Button() {} // Default constructor
-
-    Button(string text, Vector2f size, int charSize, Color bgColor, Color textColor) {
-        this->text.setString(text);
-        this->text.setFillColor(textColor);
-        this->text.setCharacterSize(charSize);
-
-        buttonShape.setSize(size);
-        buttonShape.setFillColor(bgColor);
-    }
-
-    void setFont(Font& font) {
-        text.setFont(font);
-    }
-
-    void setBackColor(Color color) {
-        buttonShape.setFillColor(color);
-    }
-
-    void setTextColor(Color color) {
-        text.setFillColor(color);
-    }
-
-    void setPosition(Vector2f pos) {
-       buttonShape.setPosition(pos);
-        // Center text within the button
-        float xPos = pos.x + (buttonShape.getSize().x - text.getLocalBounds().width) / 2;
-        float yPos = pos.y + (buttonShape.getSize().y - text.getLocalBounds().height) / 2 - text.getCharacterSize() / 4;
-        text.setPosition(xPos, yPos);
-    }
-
-    void drawTo(RenderWindow& window) {
-        window.draw(buttonShape);
-        window.draw(text);
-    }
-
-    bool isMouseOver(RenderWindow& window) {
-        Vector2f mousePos = window.mapPixelToCoords(Mouse::getPosition(window));
-        FloatRect bounds = buttonShape.getGlobalBounds();
-        return bounds.contains(mousePos);
-    }
-
-    bool isMouseClicked(RenderWindow& window) {
-        if (isMouseOver(window) && Mouse::isButtonPressed(Mouse::Left)) {
-            return true;
-        }
-        return false;
-    }
-
-private:
-    RectangleShape buttonShape;
-    Text text;
-};
-
-class MenuList {
-private:
-    bool isOpen; // Changed from int to bool to track open/close state
-    vector<Texture> textures;
-    vector<Sprite> sprites;
-    vector<ImTextureID> textureIDs;
-    int selectedItem; // Track selected item index
-
-public:
-    MenuList() : isOpen(false), selectedItem(-1) {} // Default constructor, menu is initially closed
-
-    void setTextures(const vector<Texture>& texs) {
-        textures = texs;
-
-        sprites.clear();
-        textureIDs.clear();
-
-        for (const auto& texture : textures) {
-            Sprite sprite;
-            sprite.setTexture(texture);
-            sprites.push_back(sprite);
-            textureIDs.push_back(reinterpret_cast<void*>(sprites.back().getTexture()->getNativeHandle()));
-        }
-    }
-
-    void drawMenu() {
-        if (isOpen) {
-            ImGui::Begin("Menu", &isOpen); // Pass the address of isOpen
-
-            ImGui::Columns(2, nullptr, false); // 2 columns, auto-width, no border
-
-            for (size_t i = 0; i < textureIDs.size(); ++i) {
-                ImGui::Image(textureIDs[i], ImVec2(100, 50)); // Fixed size of 150x100
-
-                if (ImGui::IsItemClicked()) {
-                    selectedItem = i;
-                }
-
-                ImGui::NextColumn(); // Move to next column
-            }
-
-            ImGui::End();
-        }
-    }
-
-    void toggle() {
-        isOpen = !isOpen;
-    }
-
-    bool isOpened() const {
-        return isOpen;
-    }
-
-    int getSelectedItemIndex() const {
-        return selectedItem;
-    }
-
-    Sprite& getSelectedSprite() {
-        if (selectedItem != -1) {
-            return sprites[selectedItem];
-        } else {
-             //returning a default sprite here if no sprite is loaded
-            static Sprite defaultSprite;
-            return defaultSprite;
-        }
-    }
-};
 
 int main() {
     int batteryNumber = 0;
@@ -323,52 +212,16 @@ int main() {
     vector<Battery> batteries;
     vector<Line> lines;
 
-    RenderWindow window(VideoMode(numCols * cellSize, numRows * cellSize), "Simulation", Style::Close | Style::Resize);
+    RenderWindow window(VideoMode(1366,768), "Simulation", Style::Close | Style::Resize);
     initializeGrid();
 
     ImGui::SFML::Init(window);
-
-     
-     //button ko
-     Font font;
-    if (!font.loadFromFile("This Cafe.ttf")) {
-        return -1;
-    }
-
-     Button btn1("Icons", {200, 50}, 20, Color::Green, Color::Black);
-    btn1.setFont(font);
-    btn1.setPosition({10, 10});
-
-    MenuList menu;
-    vector<Texture> textures;
-    vector<string> imagePaths = {
-        "textures/ResistorIcon.png",
-        "textures/CapacitorIcon.png",
-        "textures/InductorIcon.png",
-         "textures/ResistorIcon.png",
-        "textures/CapacitorIcon.png",
-        "textures/InductorIcon.png"
-    };
-
-    // Load textures
-    for (const auto& path : imagePaths) {
-        Texture texture;
-        if (texture.loadFromFile(path)) {
-            textures.push_back(texture);
-        } else {
-            cout << "Error in loading image: " << path << endl;
-        }
-    }
-
-    // Set textures for menu
-    menu.setTextures(textures);
 
     Clock deltaClock;
 
     while (window.isOpen()) {
         Event event;
         circuitConnection(switchOn);
-
         while (window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(event);
             if (event.type == Event::Closed) {
@@ -388,7 +241,7 @@ int main() {
                     if (batteryAdd) {
                         batteries.push_back(Battery());
                         batteries.back().setRadius(20);
-                        batteries.back().setFillColor(Color::Black);
+                        batteries.back().setFillColor(Color::Red);
                         batteries.back().setPosition(mousePosition);
                         batteryAdd = false;
                     }
@@ -404,7 +257,6 @@ int main() {
                 }
             }
         }
-
         if (Mouse::isButtonPressed(Mouse::Left)) {
             Vector2f mousePos(Mouse::getPosition(window));
             Bulb.updatePosition(mousePos);
@@ -415,6 +267,18 @@ int main() {
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());
+
+
+        ImVec2 windowSize(window.getSize().x, window.getSize().y);
+
+        ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always); // Set ImGui window size to match SFML window size
+        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always); // Set ImGui window position to top-left corner
+
+        ImGui::Begin("Main Layout", nullptr, ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoMove);
+
+        // Left menu area
+        ImGui::BeginChild("Menu", ImVec2(200, 0), true, ImGuiWindowFlags_NoResize); // Fixed width for the menu
+        ImGui::Text("Menu");
         ImGui::Checkbox("Switch", &switchOn);
         if (ImGui::Button("Add Battery")) {
             batteryAdd = true;
@@ -423,32 +287,36 @@ int main() {
         if (ImGui::Button("Draw Line")) {
             lineOn = true;
         }
+        ImGui::EndChild();
 
-        //button ko
-          if (btn1.isMouseOver(window)) {
-            btn1.setBackColor(Color::White);
-        } else {
-            btn1.setBackColor(Color::Green);
-        }
+        ImGui::SameLine();
 
-        if (btn1.isMouseClicked(window)) {
-            cout << "Button clicked!" << endl;
-            menu.toggle(); // Toggle menu visibility
-        }
+        // Right content area with grid rendering
+        ImGui::BeginChild("Content", ImVec2(0, 0), true, ImGuiWindowFlags_NoResize);
+
+        // Draw the grid inside the ImGui child window
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 offset = ImGui::GetCursorScreenPos();
+
+        drawGrid(drawList, offset);
+
+        ImGui::EndChild();
+        ImGui::End();
 
 
         window.clear(Color::Black);
-        drawGrid(window);
-
-        
-
-        if (switchOn) {
+         if (switchOn) {
             Bulb.setColor(Color::Red);
         }
         else {
             Bulb.setColor(Color::Black);
         }
 
+        
+
+        ImGui::SFML::Render(window);
+        // handleHover(window);
+        Bulb.draw(window);
         for (auto& battery : batteries) {
             window.draw(battery);
         }
@@ -456,26 +324,9 @@ int main() {
         for (auto& line : lines) {
             window.draw(line.points, 2, Lines);
         }
-
-        btn1.drawTo(window);
-        menu.drawMenu();
-
-        
-        // Render selected item's image at the center of the window
-       Sprite& selectedSprite = menu.getSelectedSprite();
-       selectedSprite.setScale(50.0f / selectedSprite.getLocalBounds().width,  35.0f / selectedSprite.getLocalBounds().height);
-       selectedSprite.setPosition(window.getSize().x / 2 - 25,window.getSize().y / 2 - 17.5f); //randomass size
-        window.draw(selectedSprite);
-
-
-        ImGui::SFML::Render(window);
-        int row = 0, col = 0;
-        handleHover(window, row, col);
-        Bulb.draw(window);
         window.display();
     }
 
     ImGui::SFML::Shutdown();
     return 0;
 }
-
