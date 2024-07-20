@@ -1,46 +1,77 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <cmath> // For std::round
+#include <cmath>
 
 const int numRows = 10;
 const int numCols = 10;
 const float cellSize = 50.0f;
 
-class Element {
-protected:
-    sf::Vector2f position;
+class Resistor : public sf::Drawable {
+private:
+    std::vector<sf::Vertex> zigzag;
+    sf::RectangleShape leftTerminal;
+    sf::RectangleShape rightTerminal;
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
+        target.draw(&zigzag[0], zigzag.size(), sf::LinesStrip, states);
+        target.draw(leftTerminal, states);
+        target.draw(rightTerminal, states);
+    }
 
 public:
-    Element(float x, float y) : position(x, y) {}
+    Resistor(float x, float y) {
+        float zigzagWidth = 30.0f;
+        float zigzagHeight = 10.0f;
+        float zigzagSegments = 6;
 
-    virtual void snapToGrid() = 0;
+        // Create zigzag pattern
+        for (int i = 0; i <= zigzagSegments; ++i) {
+            float px = x + i * (zigzagWidth / zigzagSegments);
+            float py = y + ((i % 2 == 0) ? 0 : zigzagHeight);
+            zigzag.emplace_back(sf::Vertex(sf::Vector2f(px, py), sf::Color::Blue));
+        }
 
-    sf::Vector2f getPosition() const {
-        return position;
+        leftTerminal.setSize(sf::Vector2f(10.0f, 5.0f));
+        leftTerminal.setFillColor(sf::Color::Black);
+        leftTerminal.setPosition(x - 10.0f, y + zigzagHeight / 2.0f - 2.5f);
+
+        rightTerminal.setSize(sf::Vector2f(10.0f, 5.0f));
+        rightTerminal.setFillColor(sf::Color::Black);
+        rightTerminal.setPosition(x + zigzagWidth, y + zigzagHeight / 2.0f - 2.5f);
     }
 
     void setPosition(sf::Vector2f pos) {
-        position = pos;
+        float x = pos.x;
+        float y = pos.y;
+        float zigzagWidth = 30.0f;
+        float zigzagHeight = 10.0f;
+        float zigzagSegments = 6;
+
+        // Update zigzag pattern
+        for (int i = 0; i <= zigzagSegments; ++i) {
+            float px = x + i * (zigzagWidth / zigzagSegments);
+            float py = y + ((i % 2 == 0) ? 0 : zigzagHeight);
+            zigzag[i].position = sf::Vector2f(px, py);
+        }
+
+        leftTerminal.setPosition(x - 10.0f, y + zigzagHeight / 2.0f - 2.5f);
+        rightTerminal.setPosition(x + zigzagWidth, y + zigzagHeight / 2.0f - 2.5f);
     }
-};
 
-class Resistor : public Element {
-public:
-    Resistor(float x, float y) : Element(x, y) {}
-
-    void snapToGrid() override {
+    void snapToGrid() {
+        sf::Vector2f position = zigzag[0].position;
         float snappedX = std::round(position.x / cellSize) * cellSize;
         float snappedY = std::round(position.y / cellSize) * cellSize;
-        position = sf::Vector2f(snappedX, snappedY);
+        setPosition(sf::Vector2f(snappedX, snappedY));
     }
 };
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Element Snap to Grid");
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Resistor Snap to Grid");
 
-    std::vector<Element*> elements;
-    bool placingElement = false;
-    Element* currentElement = nullptr;
+    std::vector<Resistor> resistors;
+    bool placingResistor = false;
+    Resistor* currentResistor = nullptr;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -53,27 +84,27 @@ int main() {
                     float mouseX = static_cast<float>(event.mouseButton.x);
                     float mouseY = static_cast<float>(event.mouseButton.y);
 
-                    // Example: create a resistor and snap it to grid
-                    Resistor* resistor = new Resistor(mouseX, mouseY);
-                    resistor->snapToGrid();
-                    elements.push_back(resistor);
-                    currentElement = resistor;
-                    placingElement = true;
+                    // Create a resistor and snap it to grid
+                    resistors.emplace_back(mouseX, mouseY);
+                    resistors.back().snapToGrid();
+                    currentResistor = &resistors.back();
+                    placingResistor = true;
                 }
             }
             else if (event.type == sf::Event::MouseButtonReleased) {
-                if (event.mouseButton.button == sf::Mouse::Left && placingElement && currentElement) {
-                    currentElement = nullptr;
-                    placingElement = false;
+                if (event.mouseButton.button == sf::Mouse::Left && placingResistor && currentResistor) {
+                    currentResistor->snapToGrid();
+                    currentResistor = nullptr;
+                    placingResistor = false;
                 }
             }
         }
 
-        if (placingElement && currentElement) {
-            // Update element's position to follow mouse cursor
+        if (placingResistor && currentResistor) {
+            // Update resistor's position to follow mouse cursor
             sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            currentElement->setPosition(mousePos);
-            currentElement->snapToGrid(); // Snap the position to grid
+            currentResistor->setPosition(mousePos);
+            currentResistor->snapToGrid(); // Snap the position to grid
         }
 
         window.clear(sf::Color::White);
@@ -90,21 +121,13 @@ int main() {
             }
         }
 
-        // Draw elements
-        for (auto& element : elements) {
-            sf::CircleShape shape(20.0f); // Example shape, replace with actual element drawing
-            shape.setPosition(element->getPosition());
-            shape.setFillColor(sf::Color::Blue); // Example color
-            window.draw(shape);
+        // Draw resistors
+        for (const auto& resistor : resistors) {
+            window.draw(resistor);
         }
 
         window.display();
     }
-
-    for (auto& element : elements) {
-        delete element;
-    }
-    elements.clear();
 
     return 0;
 }
