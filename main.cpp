@@ -291,13 +291,12 @@ int main() {
                 }
             } else if (event.type == Event::MouseButtonReleased) {
                 if (event.mouseButton.button == Mouse::Left) {
-                    // Bulb.stopDragging();
                     for (auto& component : components) {
                         component->stopDragging();
                     }
+                    // Bulb.stopDragging();
                     if (lineOn) {
                         lines.back().points[1].position = Vector2f(event.mouseButton.x, event.mouseButton.y);
-                        lineOn = false;
                     }
                 }
             }
@@ -333,7 +332,7 @@ int main() {
             batteryNumber++;
         }
         if (ImGui::Button("Draw Line")) {
-            lineOn = true;
+            lineOn = !lineOn;
         }
         ImGui::EndChild();
 
