@@ -1,5 +1,6 @@
 
 #include <SFML/Graphics.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
@@ -45,11 +46,18 @@ class DraggableElement {
 
   Vector2f imageSize;
   Vector2f rectSize;
+  float radius = 10;
+  float space = 40;
 
  public:
+  bool on;
+  bool onagain;
+
   RectangleShape dragRect;  // Invisible rectangle for dragging
-  Sprite imageSprite;       // Image to be dragged
-  Texture imageTexture;     // Image texture
+  CircleShape node1;
+  CircleShape node2;
+  Sprite imageSprite;    // Image to be dragged
+  Texture imageTexture;  // Image texture
   static int id;
   DraggableElement(const Vector2f& position, string imagePath)
       : isDragging(false),
@@ -79,9 +87,19 @@ class DraggableElement {
 
     dragRect.setSize(rectSize);
     dragRect.setFillColor(Color::Red);
+    node1.setRadius(radius);
+    node2.setRadius(radius);
+    node1.setFillColor(Color::Yellow);
+    // node1.setOutlineThickness(1);
+    node2.setFillColor(Color::Yellow);
     dragRect.setOrigin(rectSize /
                        2.0f);  // Set the origin to the center of the rectangle
-
+    node1.setOrigin(rectSize /
+                    5.0f);  // Set the origin to the center of the rectangle
+    node2.setOrigin(rectSize /
+                    2.0f);  // Set the origin to the center of the rectangle
+    node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
+    node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
     dragRect.setPosition(centerPos);
 
     //
@@ -89,12 +107,18 @@ class DraggableElement {
 
   void draw(RenderWindow& window) {
     window.draw(imageSprite);
+    window.draw(node1);
+    window.draw(node2);
     window.draw(dragRect);
     id++;
   }
 
   bool contains(Vector2f mousePosition) const {
     return dragRect.getGlobalBounds().contains(mousePosition);
+  }
+  bool containsNode(Vector2f mousePosition) const {
+    return node1.getGlobalBounds().contains(mousePosition) ||
+           node2.getGlobalBounds().contains(mousePosition);
   }
 
   void startDragging(Vector2f mousePosition) {
@@ -131,10 +155,26 @@ class DraggableElement {
                          newPosition.y + (imageSize.y) / 2.0f);
       // Update the position of both the image and the rectangle
       imageSprite.setPosition(newPosition);
+      node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
+      node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
+
       dragRect.setPosition(centerPos);
     }
   }
   void updateRotation() {}
+  int connectedA(int a) {
+    if (a) {
+      return 1;
+      on = true;
+    } else {
+      return 0;
+    }
+  }
+  int connectedB() {
+    onagain = true;
+    return 1;
+  }
+  virtual void TurnOn() {};
 };
 int DraggableElement::id = 0;
 
@@ -160,6 +200,7 @@ class Resistor : public Component, public DraggableElement {
   Resistor(ImVec2 pos, float initialVar = 45.0f)
       : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {}
   static const string& getImagePath() { return image; }
+  // wire is connected to resistor
 };
 
 const string Resistor::image = "textures/ResistorIcon.png";
@@ -174,6 +215,11 @@ class Battery : public Component, public DraggableElement {
   }
 
   static const string& getImagePath() { return image; }
+  void TurnOn() {
+    cout << "hey" << endl;
+    node1.setFillColor(Color::Black);
+    node2.setFillColor(Color::Black);
+  }
 };
 
 const string Battery::image = "textures/BatteryIcon.png";
@@ -189,22 +235,34 @@ class Inductor : public Component, public DraggableElement {
 
   static const string& getImagePath() { return image; }
 };
-
 const string Inductor::image = "textures/InductorIcon.png";
+
+class Bulb : public Component, public DraggableElement {
+ public:
+  static const string image;
+
+  Bulb(ImVec2 pos, float initialVar = 45.0f)
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
+    cout << "Bulb is made" << endl;
+  };
+  static const string& getImagePath() { return image; }
+};
+const string Bulb::image = "textures/ball.png";
 
 class MenuList {
  private:
   vector<Texture> textures;
   vector<ImTextureID> textureIDs;
   int selectedItem;  // Track selected item index
-  string components[6];
+  string components[7];
   bool itemPlaced;
   static int id;
 
  public:
   MenuList()
-      : selectedItem(-1), components{"Resistor",  "Battery", "Inductor",
-                                     "Capacitor", "Diode",   "Transistor"} {
+      : selectedItem(-1),
+        components{"Resistor",  "Battery", "Inductor",  "Bulb",
+                   "Capacitor", "Diode",   "Transistor"} {
     // Initialize textures and textureIDs here if necessary
   }
 
@@ -218,7 +276,7 @@ class MenuList {
 
   void drawMenu() {
     ImGui::BeginChild("MenuList", ImVec2(200, 0), true);
-    for (size_t i = 0; i < 6; ++i) {  // Ensure we use the correct size
+    for (size_t i = 0; i < 7; ++i) {  // Ensure we use the correct size
       if (ImGui::Button(components[i].c_str(), ImVec2(100, 50))) {
         selectedItem = i;
         itemPlaced = false;
@@ -254,6 +312,8 @@ class MenuList {
       return new Battery(pos, initialVar);
     } else if (type == "Inductor") {
       return new Inductor(pos, initialVar);
+    } else if (type == "Bulb") {
+      return new Bulb(pos, initialVar);
     }
     id++;
     // Add more cases as needed
@@ -278,15 +338,15 @@ class Load : public CircuitElement {
 
   int connect() const override { return is_connected ? 1 : 0; }
 };
+// not Necessary
+// class Wire : public CircuitElement {
+//  public:
+//   int connect() const override { return 1; }
 
-class Wire : public CircuitElement {
- public:
-  int connect() const override { return 1; }
-
-  int connectWith(const CircuitElement& element) const {
-    return element.is_connected ? 1 : 0;
-  }
-};
+//   int connectWith(const CircuitElement& element) const {
+//     return element.is_connected ? 1 : 0;
+//   }
+// };
 
 class Switch : public CircuitElement {
  public:
@@ -312,29 +372,41 @@ struct Line {
     points[0].color = Color::Black;
     points[1].color = Color::Black;
   }
+  int connectedA(int a) {
+    if (a) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  int connectedB() { return 1; }
 };
 
 // void circuitConnection(bool switchToggle) {
-//     int a, b, c;
-//     unique_ptr<Battery[]> battery(new Battery[1]);
-//     unique_ptr<Load[]> load(new Load[1]);
-//     unique_ptr<Wire[]> wire(new Wire[2]);
-//     unique_ptr<Switch[]> switch_toggle(new Switch[1]);
+//   int a, b, c;
+//   unique_ptr<Battery[]> battery(new Battery[1]);
+//   unique_ptr<Load[]> load(new Load[1]);
+//   unique_ptr<Wire[]> wire(new Wire[2]);
+//   unique_ptr<Switch[]> switch_toggle(new Switch[1]);
 
-//     a = wire[0].connect() - battery[0].connect();
-//     switch_toggle[0].toggle(a, switchToggle);
-//     load[0].connect();
-//     b = wire[1].connectWith(load[0]);
-//     c = battery[0].connect() - b;
+//   a = wire[0].connect() - battery[0].connect();
+//   switch_toggle[0].toggle(a, switchToggle);
+//   load[0].connect();
+//   b = wire[1].connectWith(load[0]);
+//   c = battery[0].connect() - b;
 
-//     if (c == 1) {
-//         // cout << "The circuit is on" << endl;
-//     }
-//     else {
-//         // cout << "The circuit is off" << endl;
-//     }
+//   if (c == 1) {
+//     // cout << "The circuit is on" << endl;
+//   } else {
+//     // cout << "The circuit is off" << endl;
+//   }
 // }
+class connection {
+ public:
+  connection() {}
+};
 
+void connectElements() { cout << "trying to connect" << endl; }
 int main() {
   int batteryNumber = 0;
   bool lineOn = false;
@@ -359,7 +431,7 @@ int main() {
   vector<Texture> textures;
   vector<string> imagePaths = {
       Resistor::getImagePath(), Battery::getImagePath(),
-      Inductor::getImagePath()
+      Inductor::getImagePath(), Bulb::getImagePath()
       // Add other component paths as needed
   };
 
@@ -380,17 +452,32 @@ int main() {
     Event event;
     while (window.pollEvent(event)) {
       ImGui::SFML::ProcessEvent(event);
+
       if (event.type == Event::Closed) {
         window.close();
-      } else if (event.type == Event::MouseButtonPressed) {
+      }
+
+      else if (event.type == Event::MouseButtonPressed) {
         if (event.mouseButton.button == Mouse::Left) {
           Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
 
           for (auto& component : components) {
             if (component->contains(mousePosition)) {
               component->startDragging(mousePosition);
+
               if (Mouse::isButtonPressed(Mouse::Right)) {
                 component->startRotating(mousePosition);
+              }
+            }
+            // line yeta bata connect hunxa
+            if (component->containsNode(mousePosition)) {
+              connectElements();
+              lines.push_back(Line(mousePosition, mousePosition));
+              for (auto& line : lines) {
+                line.connectedA(component->connectedB());
+                if (component->on && component->onagain) {
+                  component->TurnOn();
+                }
               }
             }
           }
@@ -410,10 +497,20 @@ int main() {
         }
       } else if (event.type == Event::MouseButtonReleased) {
         if (event.mouseButton.button == Mouse::Left) {
+          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
           for (auto& component : components) {
             component->stopDragging();
+            // line yeta ayera end hunxa
+            if (component->containsNode(mousePosition)) {
+              lines.back().points[1].position =
+                  Vector2f(event.mouseButton.x, event.mouseButton.y);
+              for (auto& line : lines) {
+                component->connectedA(line.connectedB());
+              }
+            }
           }
           // Bulb.stopDragging();
+
           if (lineOn) {
             lines.back().points[1].position =
                 Vector2f(event.mouseButton.x, event.mouseButton.y);
@@ -461,6 +558,13 @@ int main() {
       batteryAdd = true;
       batteryNumber++;
     }
+    // if (switchOn) {
+    //   for (auto& component : components) {
+    //     if (component->on && component->onagain) {
+    //       component->TurnOn();
+    //     }
+    //   }
+    // }
     if (ImGui::Button("Draw Line")) {
       lineOn = !lineOn;
     }
