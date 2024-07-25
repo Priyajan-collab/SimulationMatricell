@@ -1,133 +1,277 @@
 #include <SFML/Graphics.hpp>
-#include <vector>
-#include <cmath>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
+#include <iostream>
 
-const int numRows = 10;
-const int numCols = 10;
-const float cellSize = 50.0f;
+using namespace sf;
+using namespace std;
 
-class Resistor : public sf::Drawable {
+// DraggableElement class definition
+const float cellSize = 20.0f;
+const int numRows = 50;
+const int numCols = 70;
+int col = 0;
+int row = 0;
+
+class ElementRender {
 private:
-    std::vector<sf::Vertex> zigzag;
-    sf::RectangleShape leftTerminal;
-    sf::RectangleShape rightTerminal;
-
-    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
-        target.draw(&zigzag[0], zigzag.size(), sf::LinesStrip, states);
-        target.draw(leftTerminal, states);
-        target.draw(rightTerminal, states);
-    }
+    ImVec2 imagePos;
+    float var;
+    bool showInputWindow;
+    bool isDragging;
+    ImTextureID textureID;
+    string id;
 
 public:
-    Resistor(float x, float y) {
-        float zigzagWidth = 30.0f;
-        float zigzagHeight = 10.0f;
-        float zigzagSegments = 6;
+    ElementRender(ImVec2 pos, const std::string& uniqueID, float initialVar = 45.0f)
+        : imagePos(pos), var(initialVar), showInputWindow(false), isDragging(false), id(uniqueID) {}
 
-        // Create zigzag pattern
-        for (int i = 0; i <= zigzagSegments; ++i) {
-            float px = x + i * (zigzagWidth / zigzagSegments);
-            float py = y + ((i % 2 == 0) ? 0 : zigzagHeight);
-            zigzag.emplace_back(sf::Vertex(sf::Vector2f(px, py), sf::Color::Blue));
-        }
-
-        leftTerminal.setSize(sf::Vector2f(10.0f, 5.0f));
-        leftTerminal.setFillColor(sf::Color::Black);
-        leftTerminal.setPosition(x - 10.0f, y + zigzagHeight / 2.0f - 2.5f);
-
-        rightTerminal.setSize(sf::Vector2f(10.0f, 5.0f));
-        rightTerminal.setFillColor(sf::Color::Black);
-        rightTerminal.setPosition(x + zigzagWidth, y + zigzagHeight / 2.0f - 2.5f);
+    void setTexture(ImTextureID texID) {
+        textureID = texID;
     }
 
-    void setPosition(sf::Vector2f pos) {
-        float x = pos.x;
-        float y = pos.y;
-        float zigzagWidth = 30.0f;
-        float zigzagHeight = 10.0f;
-        float zigzagSegments = 6;
+    ImTextureID getTextureID() const { return textureID; }
 
-        // Update zigzag pattern
-        for (int i = 0; i <= zigzagSegments; ++i) {
-            float px = x + i * (zigzagWidth / zigzagSegments);
-            float py = y + ((i % 2 == 0) ? 0 : zigzagHeight);
-            zigzag[i].position = sf::Vector2f(px, py);
-        }
+    void drawElement() {
+    // Draw the texture as an image button
+    ImGui::SetCursorPos(imagePos);
+     // Save current style
+    ImVec4 prevButtonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
+    ImVec4 prevButtonHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
+    ImVec4 prevButtonActiveColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonActive];
+    ImVec4 prevBorderColor = ImGui::GetStyle().Colors[ImGuiCol_Border];
+    ImVec4 prevFrameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
 
-        leftTerminal.setPosition(x - 10.0f, y + zigzagHeight / 2.0f - 2.5f);
-        rightTerminal.setPosition(x + zigzagWidth, y + zigzagHeight / 2.0f - 2.5f);
+    // Set colors to be transparent
+    ImGui::GetStyle().Colors[ImGuiCol_Button] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = ImVec4(0, 0, 0, 0);
+
+    bool imageButtonClicked = ImGui::ImageButton(textureID, ImVec2(150, 50));
+
+    // Restore previous style
+    ImGui::GetStyle().Colors[ImGuiCol_Button] = prevButtonColor;
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = prevButtonHoveredColor;
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = prevButtonActiveColor;
+    ImGui::GetStyle().Colors[ImGuiCol_Border] = prevBorderColor;
+    ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = prevFrameBgColor;
+    // bool imageButtonClicked = ImGui::ImageButton(textureID, ImVec2(150, 50), ImVec2(0, 0), ImVec2(1, 1), 0, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1));
+
+    if (imageButtonClicked) {
+        showInputWindow = !isDragging;
+        isDragging = false;
     }
 
-    void snapToGrid() {
-        sf::Vector2f position = zigzag[0].position;
-        float snappedX = std::round(position.x / cellSize) * cellSize;
-        float snappedY = std::round(position.y / cellSize) * cellSize;
-        setPosition(sf::Vector2f(snappedX, snappedY));
+    // Handle dragging
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+        isDragging = true;
+        ImVec2 mouseDragDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+        imagePos.x += mouseDragDelta.x;
+        imagePos.y += mouseDragDelta.y;
+        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+    }
+
+    // Display variable
+    ImVec2 variableDisplayPos = ImVec2(imagePos.x, imagePos.y + 55); // Adjust position as needed
+    ImGui::SetCursorPos(variableDisplayPos);
+    ImGui::BeginChild(("VariableDisplay_" + id).c_str(), ImVec2(158, 35), true);
+    ImGui::Text("Variable Value: %.1f", var);
+    ImGui::EndChild();
+
+    // Handle input window
+    if (showInputWindow) {
+        ImGui::Begin(("InputWindow_" + id).c_str(), &showInputWindow);
+        ImGui::Text("Enter new value for variable");
+        ImGui::InputFloat("Variable", &var);
+        if (ImGui::Button("Close")) {
+            showInputWindow = false;
+        }
+        ImGui::End();
+    }
+}
+
+
+};
+
+
+class Draggable {
+ protected:
+  bool isDragging;
+  Vector2f dragOffset;
+
+ public:
+  RectangleShape shape;
+
+  Draggable() : isDragging(false) {}
+
+  Draggable(float width, float height, float x, float y) : isDragging(false) {
+    shape.setSize(Vector2f(width, height));
+    shape.setPosition(x, y);
+  }
+
+  virtual void draw(RenderWindow& window) { window.draw(shape); }
+
+  virtual bool contains(Vector2f mousePosition) const {
+    return shape.getGlobalBounds().contains(mousePosition);
+  }
+
+  virtual void startDragging(Vector2f mousePosition) {
+    isDragging = true;
+    dragOffset = shape.getPosition() - mousePosition;
+  }
+
+  virtual void stopDragging() { isDragging = false; }
+
+  void setColor(const Color& color) { shape.setFillColor(color); }
+
+  virtual void updatePosition(Vector2f mousePosition) {
+    Vector2f position;
+
+    // Calculate grid cell coordinates
+    int col = static_cast<int>(
+        (mousePosition.x + dragOffset.x - cellSize / 2.0f) / cellSize);
+    int row = static_cast<int>(
+        (mousePosition.y + dragOffset.y - cellSize / 2.0f) / cellSize);
+
+    if (row >= 0 && row < numRows && col >= 0 && col < numCols) {
+      // Calculate position to place object at the center of the grid cell
+      float centerX =
+          col * cellSize + cellSize / 2.0f - shape.getSize().x / 2.0f;
+      float centerY =
+          row * cellSize + cellSize / 2.0f - shape.getSize().y / 2.0f;
+
+      // Set the position accordingly
+      position.x = centerX;
+      position.y = centerY;
+    }
+
+    if (isDragging) {
+      shape.setPosition(position - dragOffset);
+    }
+  }
+  virtual ~Draggable() = default;
+};
+
+class DraggableElement {
+protected:
+    bool isDragging;
+    Vector2f dragOffset;
+    Vector2f imageSize;
+
+public:
+    RectangleShape dragRect; // Invisible rectangle for dragging
+    Sprite imageSprite;      // Image to be dragged
+    Texture imageTexture;   // Image texture
+
+    DraggableElement(const string& imagePath, const Vector2f& imgSize, const Vector2f& rectSize, const Vector2f& position) 
+        : isDragging(false),imageSize(imgSize) {
+
+        // Load the image texture
+        if (!imageTexture.loadFromFile(imagePath)) {
+            throw runtime_error("Failed to load image texture");
+        }
+
+        // Set up the image sprite
+        imageSprite.setTexture(imageTexture);
+        Vector2u textureSize = imageTexture.getSize();
+
+        // Calculate the scale factors
+        float scaleX = imageSize.x / textureSize.x;
+        float scaleY = imageSize.y / textureSize.y;
+
+        // Apply the scale to the sprite
+        imageSprite.setScale(scaleX, scaleY);
+
+        // Set the position and origin of the sprite
+        imageSprite.setPosition(position);
+        imageSprite.setOrigin(imageSize / 2.0f);
+
+        Vector2f centerPos(position.x + (imageSize.x)/2.0f,position.y + (imageSize.y)/2.0f);
+        // Set up the drag rectangle
+        dragRect.setSize(rectSize);
+        dragRect.setFillColor(Color::Red); // Make the rectangle invisible
+        dragRect.setOrigin(rectSize / 2.0f); // Set the origin to the center of the rectangle
+        // Center the rectangle on the image
+        dragRect.setPosition(centerPos);
+
+
+        cout<<"Rectangle"<<endl;
+        cout<<"X:"<<dragRect.getPosition().x<<"Y:"<<dragRect.getPosition().y<<endl;
+
+        cout<<"Image"<<endl;
+        cout<<"X:"<<imageSprite.getPosition().x<<"Y:"<<imageSprite.getPosition().y<<endl;
+    }
+
+    void draw(RenderWindow& window) {
+        window.draw(imageSprite);   // Draw the image
+        window.draw(dragRect);      // Draw the invisible rectangle for dragging
+    }
+
+    bool contains(Vector2f mousePosition) const {
+        return dragRect.getGlobalBounds().contains(mousePosition);
+    }
+
+    void startDragging(Vector2f mousePosition) {
+        isDragging = true;
+        dragOffset = imageSprite.getPosition() - mousePosition;
+    }
+
+    void stopDragging() {
+        isDragging = false;
+    }
+
+    void updatePosition(Vector2f mousePosition) {
+        if (isDragging) {
+            Vector2f newPosition = mousePosition + dragOffset;
+            Vector2f centerPos(newPosition.x + (imageSize.x)/2.0f,newPosition.y + (imageSize.y)/2.0f);
+            // Update the position of both the image and the rectangle
+            imageSprite.setPosition(newPosition);
+            dragRect.setPosition(centerPos);
+        }
     }
 };
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Resistor Snap to Grid");
+    RenderWindow window(VideoMode(800, 600), "Drag Image Example");
+    ImGui::SFML::Init(window);
 
-    std::vector<Resistor> resistors;
-    bool placingResistor = false;
-    Resistor* currentResistor = nullptr;
+    DraggableElement draggable("textures/ResistorIcon.png", Vector2f(80, 40), Vector2f(10, 10), Vector2f(400, 300));
+
+    Clock deltaClock;
 
     while (window.isOpen()) {
-        sf::Event event;
+        Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
+            ImGui::SFML::ProcessEvent(event);
+
+            if (event.type == Event::Closed) {
                 window.close();
             }
-            else if (event.type == sf::Event::MouseButtonPressed) {
-                if (event.mouseButton.button == sf::Mouse::Left) {
-                    float mouseX = static_cast<float>(event.mouseButton.x);
-                    float mouseY = static_cast<float>(event.mouseButton.y);
+        }
 
-                    // Create a resistor and snap it to grid
-                    resistors.emplace_back(mouseX, mouseY);
-                    resistors.back().snapToGrid();
-                    currentResistor = &resistors.back();
-                    placingResistor = true;
-                }
+        ImGui::SFML::Update(window, deltaClock.restart());
+
+        Vector2f mousePosition = window.mapPixelToCoords(Mouse::getPosition(window));
+
+        if (Mouse::isButtonPressed(Mouse::Left)) {
+            if (draggable.contains(mousePosition)) {
+                draggable.startDragging(mousePosition);
             }
-            else if (event.type == sf::Event::MouseButtonReleased) {
-                if (event.mouseButton.button == sf::Mouse::Left && placingResistor && currentResistor) {
-                    currentResistor->snapToGrid();
-                    currentResistor = nullptr;
-                    placingResistor = false;
-                }
-            }
+            draggable.updatePosition(mousePosition);
+        } else {
+            draggable.stopDragging();
         }
 
-        if (placingResistor && currentResistor) {
-            // Update resistor's position to follow mouse cursor
-            sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            currentResistor->setPosition(mousePos);
-            currentResistor->snapToGrid(); // Snap the position to grid
-        }
-
-        window.clear(sf::Color::White);
-
-        // Draw grid (optional for visualization)
-        for (int i = 0; i < numRows; ++i) {
-            for (int j = 0; j < numCols; ++j) {
-                sf::RectangleShape cell(sf::Vector2f(cellSize, cellSize));
-                cell.setPosition(j * cellSize, i * cellSize);
-                cell.setFillColor(sf::Color::Transparent);
-                cell.setOutlineColor(sf::Color::Black);
-                cell.setOutlineThickness(1.0f);
-                window.draw(cell);
-            }
-        }
-
-        // Draw resistors
-        for (const auto& resistor : resistors) {
-            window.draw(resistor);
-        }
-
+        window.clear(Color::White);
+        draggable.draw(window);
+        ImGui::SFML::Render(window);
         window.display();
     }
 
+    ImGui::SFML::Shutdown();
     return 0;
 }
