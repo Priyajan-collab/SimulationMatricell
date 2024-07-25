@@ -3,6 +3,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
+#include <cmath>
 #include <iostream>
 #include <memory>
 
@@ -38,7 +39,10 @@ void drawGrid(ImDrawList* drawList, const ImVec2& offset) {
 class DraggableElement {
  protected:
   bool isDragging;
+  bool isRotating;
   Vector2f dragOffset;
+  float rotateOffset;
+
   Vector2f imageSize;
   Vector2f rectSize;
 
@@ -80,13 +84,7 @@ class DraggableElement {
 
     dragRect.setPosition(centerPos);
 
-    cout << "Rectangle" << endl;
-    cout << "X:" << dragRect.getPosition().x << "Y:" << dragRect.getPosition().y
-         << endl;
-
-    cout << "Image" << endl;
-    cout << "X:" << imageSprite.getPosition().x
-         << "Y:" << imageSprite.getPosition().y << endl;
+    //
   }
 
   void draw(RenderWindow& window) {
@@ -104,7 +102,27 @@ class DraggableElement {
     dragOffset = imageSprite.getPosition() - mousePosition;
   }
 
+  void startRotating(Vector2f mousePosition) {
+    isRotating = true;
+    if (isRotating) {
+      float x = imageSprite.getRotation();
+      float yes = x;
+      Vector2f temp = dragRect.getPosition();
+      imageSprite.setRotation(x + 90);
+
+      Vector2f z = imageSprite.getPosition();
+
+      Vector2f centerPos(mousePosition.x + (imageSize.y) / 2.0f,
+                         mousePosition.y + (imageSize.x) / 2.0f);
+      cout << centerPos.x << "::" << centerPos.y << "after" << -centerPos.y
+           << "::" << centerPos.x << endl;
+      // dragRect.setPosition(centerPos);
+      cout << dragRect.getPosition().x << "::::" << dragRect.getPosition().y
+           << endl;
+    }
+  }
   void stopDragging() { isDragging = false; }
+  void stopRotating() { isRotating = false; }
 
   void updatePosition(Vector2f mousePosition) {
     if (isDragging) {
@@ -116,6 +134,7 @@ class DraggableElement {
       dragRect.setPosition(centerPos);
     }
   }
+  void updateRotation() {}
 };
 int DraggableElement::id = 0;
 
@@ -137,8 +156,9 @@ class Resistor : public Component, public DraggableElement {
   //     : Component(), ElementRender( pos, uniqueID, initialVar) {
 
   // }
+
   Resistor(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(pos, image) {}
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {}
   static const string& getImagePath() { return image; }
 };
 
@@ -149,7 +169,7 @@ class Battery : public Component, public DraggableElement {
   static const string image;
 
   Battery(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(pos, image) {
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
     cout << "Battery is made" << endl;
   }
 
@@ -163,7 +183,7 @@ class Inductor : public Component, public DraggableElement {
   static const string image;
 
   Inductor(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(pos, image) {
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
     cout << "Inductorery is made" << endl;
   }
 
@@ -369,11 +389,23 @@ int main() {
           for (auto& component : components) {
             if (component->contains(mousePosition)) {
               component->startDragging(mousePosition);
+              if (Mouse::isButtonPressed(Mouse::Right)) {
+                component->startRotating(mousePosition);
+              }
             }
           }
 
           if (lineOn) {
             lines.push_back(Line(mousePosition, mousePosition));
+          }
+        } else if (event.mouseButton.button == Mouse::Right) {
+          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+          for (auto& component : components) {
+            if (component->contains(mousePosition)) {
+              if (Mouse::isButtonPressed(Mouse::Right)) {
+                component->startRotating(mousePosition);
+              }
+            }
           }
         }
       } else if (event.type == Event::MouseButtonReleased) {
