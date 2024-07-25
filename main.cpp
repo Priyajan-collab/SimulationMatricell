@@ -43,7 +43,6 @@ class DraggableElement {
   bool isRotating;
   Vector2f dragOffset;
   float rotateOffset;
-  bool on;
 
   Vector2f imageSize;
   Vector2f rectSize;
@@ -51,6 +50,9 @@ class DraggableElement {
   float space = 40;
 
  public:
+  bool on;
+  bool onagain;
+
   RectangleShape dragRect;  // Invisible rectangle for dragging
   CircleShape node1;
   CircleShape node2;
@@ -163,6 +165,7 @@ class DraggableElement {
 
   void updatePosition(Vector2f mousePosition) {
     if (isDragging) {
+
       int col = static_cast<int>((mousePosition.x + dragOffset.x ) / cellSize);
       int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
 
@@ -192,7 +195,6 @@ class DraggableElement {
 
         dragRect.setPosition(centerPos);
       // }
-
     }
   }
   void updateRotation() {}
@@ -204,7 +206,12 @@ class DraggableElement {
       return 0;
     }
   }
-  int connectedB() { return 1; }
+
+  int connectedB() {
+    onagain = true;
+    return 1;
+  }
+  virtual void TurnOn() {};
 };
 int DraggableElement::id = 0;
 int DraggableElement::quadrant = 0;
@@ -246,6 +253,11 @@ class Battery : public Component, public DraggableElement {
   }
 
   static const string& getImagePath() { return image; }
+  void TurnOn() {
+    cout << "hey" << endl;
+    node1.setFillColor(Color::Black);
+    node2.setFillColor(Color::Black);
+  }
 };
 
 const string Battery::image = "textures/BatteryIcon.png";
@@ -272,11 +284,6 @@ class Bulb : public Component, public DraggableElement {
     cout << "Bulb is made" << endl;
   };
   static const string& getImagePath() { return image; }
-  void TurnOn() {
-    if (on) {
-      node1.setFillColor(Color::Red);
-    }
-  }
 };
 const string Bulb::image = "textures/ball.png";
 
@@ -294,6 +301,7 @@ class MenuList {
       : selectedItem(-1),
         components{"Resistor", "Battery",    "Inductor", "Bulb", "Capacitor",
                    "Diode",    "Transistor"} {
+
     // Initialize textures and textureIDs here if necessary
   }
 
@@ -483,9 +491,12 @@ int main() {
     Event event;
     while (window.pollEvent(event)) {
       ImGui::SFML::ProcessEvent(event);
+
       if (event.type == Event::Closed) {
         window.close();
-      } else if (event.type == Event::MouseButtonPressed) {
+      }
+
+      else if (event.type == Event::MouseButtonPressed) {
         if (event.mouseButton.button == Mouse::Left) {
           Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
 
@@ -503,6 +514,9 @@ int main() {
               lines.push_back(Line(mousePosition, mousePosition));
               for (auto& line : lines) {
                 line.connectedA(component->connectedB());
+                if (component->on && component->onagain) {
+                  component->TurnOn();
+                }
               }
             }
           }
@@ -583,6 +597,13 @@ int main() {
       batteryAdd = true;
       batteryNumber++;
     }
+    // if (switchOn) {
+    //   for (auto& component : components) {
+    //     if (component->on && component->onagain) {
+    //       component->TurnOn();
+    //     }
+    //   }
+    // }
     if (ImGui::Button("Draw Line")) {
       lineOn = !lineOn;
     }
