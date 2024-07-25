@@ -9,6 +9,153 @@ using namespace sf;
 using namespace std;
 
 // DraggableElement class definition
+const float cellSize = 20.0f;
+const int numRows = 50;
+const int numCols = 70;
+int col = 0;
+int row = 0;
+
+class ElementRender {
+private:
+    ImVec2 imagePos;
+    float var;
+    bool showInputWindow;
+    bool isDragging;
+    ImTextureID textureID;
+    string id;
+
+public:
+    ElementRender(ImVec2 pos, const std::string& uniqueID, float initialVar = 45.0f)
+        : imagePos(pos), var(initialVar), showInputWindow(false), isDragging(false), id(uniqueID) {}
+
+    void setTexture(ImTextureID texID) {
+        textureID = texID;
+    }
+
+    ImTextureID getTextureID() const { return textureID; }
+
+    void drawElement() {
+    // Draw the texture as an image button
+    ImGui::SetCursorPos(imagePos);
+     // Save current style
+    ImVec4 prevButtonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
+    ImVec4 prevButtonHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
+    ImVec4 prevButtonActiveColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonActive];
+    ImVec4 prevBorderColor = ImGui::GetStyle().Colors[ImGuiCol_Border];
+    ImVec4 prevFrameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
+
+    // Set colors to be transparent
+    ImGui::GetStyle().Colors[ImGuiCol_Button] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0);
+    ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = ImVec4(0, 0, 0, 0);
+
+    bool imageButtonClicked = ImGui::ImageButton(textureID, ImVec2(150, 50));
+
+    // Restore previous style
+    ImGui::GetStyle().Colors[ImGuiCol_Button] = prevButtonColor;
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = prevButtonHoveredColor;
+    ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = prevButtonActiveColor;
+    ImGui::GetStyle().Colors[ImGuiCol_Border] = prevBorderColor;
+    ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = prevFrameBgColor;
+    // bool imageButtonClicked = ImGui::ImageButton(textureID, ImVec2(150, 50), ImVec2(0, 0), ImVec2(1, 1), 0, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1));
+
+    if (imageButtonClicked) {
+        showInputWindow = !isDragging;
+        isDragging = false;
+    }
+
+    // Handle dragging
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+        isDragging = true;
+        ImVec2 mouseDragDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+        imagePos.x += mouseDragDelta.x;
+        imagePos.y += mouseDragDelta.y;
+        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+    }
+
+    // Display variable
+    ImVec2 variableDisplayPos = ImVec2(imagePos.x, imagePos.y + 55); // Adjust position as needed
+    ImGui::SetCursorPos(variableDisplayPos);
+    ImGui::BeginChild(("VariableDisplay_" + id).c_str(), ImVec2(158, 35), true);
+    ImGui::Text("Variable Value: %.1f", var);
+    ImGui::EndChild();
+
+    // Handle input window
+    if (showInputWindow) {
+        ImGui::Begin(("InputWindow_" + id).c_str(), &showInputWindow);
+        ImGui::Text("Enter new value for variable");
+        ImGui::InputFloat("Variable", &var);
+        if (ImGui::Button("Close")) {
+            showInputWindow = false;
+        }
+        ImGui::End();
+    }
+}
+
+
+};
+
+
+class Draggable {
+ protected:
+  bool isDragging;
+  Vector2f dragOffset;
+
+ public:
+  RectangleShape shape;
+
+  Draggable() : isDragging(false) {}
+
+  Draggable(float width, float height, float x, float y) : isDragging(false) {
+    shape.setSize(Vector2f(width, height));
+    shape.setPosition(x, y);
+  }
+
+  virtual void draw(RenderWindow& window) { window.draw(shape); }
+
+  virtual bool contains(Vector2f mousePosition) const {
+    return shape.getGlobalBounds().contains(mousePosition);
+  }
+
+  virtual void startDragging(Vector2f mousePosition) {
+    isDragging = true;
+    dragOffset = shape.getPosition() - mousePosition;
+  }
+
+  virtual void stopDragging() { isDragging = false; }
+
+  void setColor(const Color& color) { shape.setFillColor(color); }
+
+  virtual void updatePosition(Vector2f mousePosition) {
+    Vector2f position;
+
+    // Calculate grid cell coordinates
+    int col = static_cast<int>(
+        (mousePosition.x + dragOffset.x - cellSize / 2.0f) / cellSize);
+    int row = static_cast<int>(
+        (mousePosition.y + dragOffset.y - cellSize / 2.0f) / cellSize);
+
+    if (row >= 0 && row < numRows && col >= 0 && col < numCols) {
+      // Calculate position to place object at the center of the grid cell
+      float centerX =
+          col * cellSize + cellSize / 2.0f - shape.getSize().x / 2.0f;
+      float centerY =
+          row * cellSize + cellSize / 2.0f - shape.getSize().y / 2.0f;
+
+      // Set the position accordingly
+      position.x = centerX;
+      position.y = centerY;
+    }
+
+    if (isDragging) {
+      shape.setPosition(position - dragOffset);
+    }
+  }
+  virtual ~Draggable() = default;
+};
+
 class DraggableElement {
 protected:
     bool isDragging;
