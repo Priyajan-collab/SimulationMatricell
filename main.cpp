@@ -8,7 +8,7 @@
 #include <iostream>
 #include <memory>
 
-#include "../include/grid/grid.hpp"
+#include "customlib/grid/grid.hpp"
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -59,6 +59,7 @@ class DraggableElement {
   Sprite imageSprite;    // Image to be dragged
   Texture imageTexture;  // Image texture
   static int id;
+  static int quadrant;
   DraggableElement(const Vector2f& position, string imagePath)
       : isDragging(false),
         imageSize(Vector2f(80, 40)),
@@ -127,38 +128,73 @@ class DraggableElement {
   }
 
   void startRotating(Vector2f mousePosition) {
-    isRotating = true;
-    if (isRotating) {
-      float x = imageSprite.getRotation();
-      float yes = x;
-      Vector2f temp = dragRect.getPosition();
+      int x = imageSprite.getRotation();
+      cout<<quadrant<<endl;
       imageSprite.setRotation(x + 90);
 
-      Vector2f z = imageSprite.getPosition();
-
-      Vector2f centerPos(mousePosition.x + (imageSize.y) / 2.0f,
-                         mousePosition.y + (imageSize.x) / 2.0f);
-      cout << centerPos.x << "::" << centerPos.y << "after" << -centerPos.y
-           << "::" << centerPos.x << endl;
-      // dragRect.setPosition(centerPos);
-      cout << dragRect.getPosition().x << "::::" << dragRect.getPosition().y
-           << endl;
-    }
+      if (quadrant == 3){
+        Vector2f pos(imageSprite.getPosition());
+        Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
+                          pos.y + (imageSize.y) / 2.0f);
+        dragRect.setPosition(centerPos);
+        quadrant = 0;
+      }
+      else if(quadrant == 0 ){
+        Vector2f pos(imageSprite.getPosition());
+        Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
+                          pos.y + (imageSize.x) / 2.0f);
+        dragRect.setPosition(centerPos);
+        quadrant ++;
+      }else if(quadrant==1){
+        Vector2f pos(imageSprite.getPosition());
+        Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
+                          pos.y - (imageSize.y) / 2.0f);
+        dragRect.setPosition(centerPos);
+        quadrant++;
+      }else if(quadrant==2){
+        Vector2f pos(imageSprite.getPosition());
+        Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
+                          pos.y - (imageSize.x) / 2.0f);
+        dragRect.setPosition(centerPos);
+        quadrant ++;
+      }
   }
+
   void stopDragging() { isDragging = false; }
   void stopRotating() { isRotating = false; }
 
   void updatePosition(Vector2f mousePosition) {
     if (isDragging) {
-      Vector2f newPosition = mousePosition + dragOffset;
-      Vector2f centerPos(newPosition.x + (imageSize.x) / 2.0f,
-                         newPosition.y + (imageSize.y) / 2.0f);
-      // Update the position of both the image and the rectangle
-      imageSprite.setPosition(newPosition);
-      node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
-      node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
 
-      dragRect.setPosition(centerPos);
+      int col = static_cast<int>((mousePosition.x + dragOffset.x ) / cellSize);
+      int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
+
+      Vector2f newPosition (grid[row][col].position.x , grid[row][col].position.y - 3.0f) ;
+      // if(quadrant == 0){
+      Vector2f centerPos;
+      if (quadrant == 0){
+        centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
+                          newPosition.y + (imageSize.y) / 2.0f);
+      }
+      else if(quadrant == 1 ){
+        centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
+                          newPosition.y + (imageSize.x) / 2.0f);
+      }else if(quadrant==2){
+        
+        centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
+                          newPosition.y - (imageSize.y) / 2.0f);
+
+      }else if(quadrant==3){
+        
+        centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
+                          newPosition.y - (imageSize.x) / 2.0f);
+      }
+        imageSprite.setPosition(newPosition);
+        node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
+        node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
+
+        dragRect.setPosition(centerPos);
+      // }
     }
   }
   void updateRotation() {}
@@ -170,6 +206,7 @@ class DraggableElement {
       return 0;
     }
   }
+
   int connectedB() {
     onagain = true;
     return 1;
@@ -177,6 +214,7 @@ class DraggableElement {
   virtual void TurnOn() {};
 };
 int DraggableElement::id = 0;
+int DraggableElement::quadrant = 0;
 
 class Component {
  public:
@@ -261,8 +299,9 @@ class MenuList {
  public:
   MenuList()
       : selectedItem(-1),
-        components{"Resistor",  "Battery", "Inductor",  "Bulb",
-                   "Capacitor", "Diode",   "Transistor"} {
+        components{"Resistor", "Battery",    "Inductor", "Bulb", "Capacitor",
+                   "Diode",    "Transistor"} {
+
     // Initialize textures and textureIDs here if necessary
   }
 
