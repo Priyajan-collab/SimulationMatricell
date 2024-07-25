@@ -93,6 +93,85 @@ class Draggable {
   virtual ~Draggable() = default;
 };
 
+class DraggableElement {
+protected:
+    bool isDragging;
+    Vector2f dragOffset;
+    Vector2f imageSize;
+    Vector2f rectSize;
+
+public:
+    RectangleShape dragRect; // Invisible rectangle for dragging
+    Sprite imageSprite;      // Image to be dragged
+    Texture imageTexture;   // Image texture
+
+    DraggableElement( const Vector2f& position,string imagePath) 
+        : isDragging(false),imageSize(Vector2f(80, 40)), rectSize(Vector2f(10, 10)){
+
+        // Load the image texture
+        if (!imageTexture.loadFromFile(imagePath)) {
+            throw runtime_error("Failed to load image texture");
+        }
+
+        // Set up the image sprite
+        imageSprite.setTexture(imageTexture);
+        Vector2u textureSize = imageTexture.getSize();
+
+        // Calculate the scale factors
+        float scaleX = imageSize.x / textureSize.x;
+        float scaleY = imageSize.y / textureSize.y;
+
+        // Apply the scale to the sprite
+        imageSprite.setScale(scaleX, scaleY);
+
+        // Set the position and origin of the sprite
+        imageSprite.setPosition(position);
+        imageSprite.setOrigin(imageSize / 2.0f);
+
+        Vector2f centerPos(position.x + (imageSize.x)/2.0f,position.y + (imageSize.y)/2.0f);
+        // Set up the drag rectangle
+        dragRect.setSize(rectSize);
+        dragRect.setFillColor(Color::Red); // Make the rectangle invisible
+        dragRect.setOrigin(rectSize / 2.0f); // Set the origin to the center of the rectangle
+        // Center the rectangle on the image
+        dragRect.setPosition(centerPos);
+
+
+        cout<<"Rectangle"<<endl;
+        cout<<"X:"<<dragRect.getPosition().x<<"Y:"<<dragRect.getPosition().y<<endl;
+
+        cout<<"Image"<<endl;
+        cout<<"X:"<<imageSprite.getPosition().x<<"Y:"<<imageSprite.getPosition().y<<endl;
+    }
+
+    void draw(RenderWindow& window) {
+        window.draw(imageSprite);   // Draw the image
+        window.draw(dragRect);      // Draw the invisible rectangle for dragging
+    }
+
+    bool contains(Vector2f mousePosition) const {
+        return dragRect.getGlobalBounds().contains(mousePosition);
+    }
+
+    void startDragging(Vector2f mousePosition) {
+        isDragging = true;
+        dragOffset = imageSprite.getPosition() - mousePosition;
+    }
+
+    void stopDragging() {
+        isDragging = false;
+    }
+
+    void updatePosition(Vector2f mousePosition) {
+        if (isDragging) {
+            Vector2f newPosition = mousePosition + dragOffset;
+            Vector2f centerPos(newPosition.x + (imageSize.x)/2.0f,newPosition.y + (imageSize.y)/2.0f);
+            // Update the position of both the image and the rectangle
+            imageSprite.setPosition(newPosition);
+            dragRect.setPosition(centerPos);
+        }
+    }
+};
 
 class ElementRender {
 private:
@@ -183,18 +262,21 @@ public:
 };
 
 
-class Resistor : public Component, public ElementRender {
+class Resistor : public Component, public DraggableElement {
     static const string image;
     Texture resistorTexture;
     ImTextureID resistorTextureID;
     // ImTextureID batteryTextureID = (void*)(intptr_t)batteryTexture.getNativeHandle();
 public:
     
-    Resistor( ImVec2 pos, const std::string& uniqueID, float initialVar = 45.0f)
-        : Component(), ElementRender( pos, uniqueID, initialVar) {
+    // Resistor( ImVec2 pos, const std::string& uniqueID, float initialVar = 45.0f)
+    //     : Component(), ElementRender( pos, uniqueID, initialVar) {
+        
+    // }
+     Resistor( ImVec2 pos, float initialVar = 45.0f)
+        : Component(), DraggableElement( pos,image) {
         
     }
-
     static const string& getImagePath() { return image; }
     
 };
@@ -202,12 +284,12 @@ public:
 const string Resistor::image = "textures/ResistorIcon.png";
 
 
-class Batt : public Component, public ElementRender {
+class Batt : public Component, public DraggableElement {
 public:
     static const string image;
     
-    Batt( ImVec2 pos, const std::string& uniqueID, float initialVar = 45.0f)
-        : Component(), ElementRender( pos, uniqueID, initialVar) {
+    Batt( ImVec2 pos, float initialVar = 45.0f)
+        : Component(), DraggableElement( pos,image) {
         cout << "Battery is made" << endl;
     }
 
@@ -237,6 +319,7 @@ private:
     int selectedItem; // Track selected item index
     string components[6];
     bool itemPlaced;
+    static int id;
 
 public:
     MenuList() : selectedItem(-1), components{"Resistor", "Battery", "Inductor", "Capacitor", "Diode", "Transistor"} {
@@ -284,15 +367,29 @@ public:
         }
     }
 
-    Component* createComponent(const string& type, ImVec2 pos, const std::string& uniqueID, float initialVar) {
+    // Component* createComponent(const string& type, ImVec2 pos, const std::string& uniqueID, float initialVar) {
+    //     if (type == "Resistor") {
+    //         return new Resistor(pos, uniqueID + to_string(id), initialVar);
+    //     } else if (type == "Battery") {
+    //         return new Batt(pos, uniqueID + to_string(id), initialVar);
+    //     }
+    //     else if (type == "Inductor") {
+    //         return new Inductor(pos, uniqueID + to_string(id), initialVar);
+    //     }
+    //     id++;
+    //     // Add more cases as needed
+    //     return nullptr;
+    // }
+    Component* createComponent(const string& type, ImVec2 pos,  float initialVar) {
         if (type == "Resistor") {
-            return new Resistor(pos, uniqueID, initialVar);
+            return new Resistor(pos, initialVar);
         } else if (type == "Battery") {
-            return new Batt(pos, uniqueID, initialVar);
+            return new Batt(pos, initialVar);
         }
-        else if (type == "Inductor") {
-            return new Inductor(pos, uniqueID, initialVar);
-        }
+        // else if (type == "Inductor") {
+        //     return new Inductor(pos, initialVar);
+        // }
+        id++;
         // Add more cases as needed
         return nullptr;
     }
@@ -304,6 +401,7 @@ public:
         itemPlaced = placed;
     }
 };
+int MenuList::id = 0;
 
 
 
@@ -467,6 +565,7 @@ int main() {
 
    
     vector<unique_ptr<ElementRender>> elementRenders;
+    vector<unique_ptr<DraggableElement>> elements; 
 
     while (window.isOpen()) {
         Event event;
@@ -481,7 +580,7 @@ int main() {
                     //     Bulb.startDragging(mousePosition);
                     // }
                     
-                    for (auto& component : components) {
+                    for (auto& component : elements) {
                         if (component->contains(mousePosition)) {
                             component->startDragging(mousePosition);
                         }
@@ -498,7 +597,7 @@ int main() {
                 }
             } else if (event.type == Event::MouseButtonReleased) {
                 if (event.mouseButton.button == Mouse::Left) {
-                    for (auto& component : components) {
+                    for (auto& component : elements) {
                         component->stopDragging();
                     }
                     // Bulb.stopDragging();
@@ -512,7 +611,7 @@ int main() {
         if (Mouse::isButtonPressed(Mouse::Left)) {
             Vector2f mousePos(Mouse::getPosition(window));
             // Bulb.updatePosition(mousePos);
-            for (auto& component : components) {
+            for (auto& component : elements) {
                 component->updatePosition(mousePos);
             }
 
@@ -566,13 +665,24 @@ int main() {
             string selectedComponent = menu.getSelectedComponentName();
             ImTextureID textureID = menu.getSelectedTextureID();
 
+            // if (!selectedComponent.empty() && textureID) {
+            //     auto component = menu.createComponent(selectedComponent, mousePos, selectedComponent,45.0f);
+            //     if (component) {
+            //         auto elementRender = dynamic_cast<ElementRender*>(component);
+            //         if (elementRender) {
+            //             elementRender->setTexture(textureID);
+            //             elementRenders.push_back(unique_ptr<ElementRender>(elementRender));
+            //             menu.setItemPlaced(true);
+            //         }
+            //     }
+            // }
             if (!selectedComponent.empty() && textureID) {
-                auto component = menu.createComponent(selectedComponent, mousePos, selectedComponent,45.0f);
+                auto component = menu.createComponent(selectedComponent, mousePos,45.0f);
                 if (component) {
-                    auto elementRender = dynamic_cast<ElementRender*>(component);
+                    auto elementRender = dynamic_cast<DraggableElement*>(component);
                     if (elementRender) {
-                        elementRender->setTexture(textureID);
-                        elementRenders.push_back(unique_ptr<ElementRender>(elementRender));
+                        // elementRender->setTexture(textureID);
+                        elements.push_back(unique_ptr<DraggableElement>(elementRender));
                         menu.setItemPlaced(true);
                     }
                 }
@@ -615,7 +725,7 @@ int main() {
         ImGui::End();
         ImGui::SFML::Render(window);
 
-        for (auto& component : components) {
+        for (auto& component : elements) {
             component->draw(window);
         }
 

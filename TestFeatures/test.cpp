@@ -1,133 +1,130 @@
 #include <SFML/Graphics.hpp>
-#include <vector>
-#include <cmath>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
+#include <iostream>
 
-const int numRows = 10;
-const int numCols = 10;
-const float cellSize = 50.0f;
+using namespace sf;
+using namespace std;
 
-class Resistor : public sf::Drawable {
-private:
-    std::vector<sf::Vertex> zigzag;
-    sf::RectangleShape leftTerminal;
-    sf::RectangleShape rightTerminal;
-
-    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
-        target.draw(&zigzag[0], zigzag.size(), sf::LinesStrip, states);
-        target.draw(leftTerminal, states);
-        target.draw(rightTerminal, states);
-    }
+// DraggableElement class definition
+class DraggableElement {
+protected:
+    bool isDragging;
+    Vector2f dragOffset;
+    Vector2f imageSize;
 
 public:
-    Resistor(float x, float y) {
-        float zigzagWidth = 30.0f;
-        float zigzagHeight = 10.0f;
-        float zigzagSegments = 6;
+    RectangleShape dragRect; // Invisible rectangle for dragging
+    Sprite imageSprite;      // Image to be dragged
+    Texture imageTexture;   // Image texture
 
-        // Create zigzag pattern
-        for (int i = 0; i <= zigzagSegments; ++i) {
-            float px = x + i * (zigzagWidth / zigzagSegments);
-            float py = y + ((i % 2 == 0) ? 0 : zigzagHeight);
-            zigzag.emplace_back(sf::Vertex(sf::Vector2f(px, py), sf::Color::Blue));
+    DraggableElement(const string& imagePath, const Vector2f& imgSize, const Vector2f& rectSize, const Vector2f& position) 
+        : isDragging(false),imageSize(imgSize) {
+
+        // Load the image texture
+        if (!imageTexture.loadFromFile(imagePath)) {
+            throw runtime_error("Failed to load image texture");
         }
 
-        leftTerminal.setSize(sf::Vector2f(10.0f, 5.0f));
-        leftTerminal.setFillColor(sf::Color::Black);
-        leftTerminal.setPosition(x - 10.0f, y + zigzagHeight / 2.0f - 2.5f);
+        // Set up the image sprite
+        imageSprite.setTexture(imageTexture);
+        Vector2u textureSize = imageTexture.getSize();
 
-        rightTerminal.setSize(sf::Vector2f(10.0f, 5.0f));
-        rightTerminal.setFillColor(sf::Color::Black);
-        rightTerminal.setPosition(x + zigzagWidth, y + zigzagHeight / 2.0f - 2.5f);
+        // Calculate the scale factors
+        float scaleX = imageSize.x / textureSize.x;
+        float scaleY = imageSize.y / textureSize.y;
+
+        // Apply the scale to the sprite
+        imageSprite.setScale(scaleX, scaleY);
+
+        // Set the position and origin of the sprite
+        imageSprite.setPosition(position);
+        imageSprite.setOrigin(imageSize / 2.0f);
+
+        Vector2f centerPos(position.x + (imageSize.x)/2.0f,position.y + (imageSize.y)/2.0f);
+        // Set up the drag rectangle
+        dragRect.setSize(rectSize);
+        dragRect.setFillColor(Color::Red); // Make the rectangle invisible
+        dragRect.setOrigin(rectSize / 2.0f); // Set the origin to the center of the rectangle
+        // Center the rectangle on the image
+        dragRect.setPosition(centerPos);
+
+
+        cout<<"Rectangle"<<endl;
+        cout<<"X:"<<dragRect.getPosition().x<<"Y:"<<dragRect.getPosition().y<<endl;
+
+        cout<<"Image"<<endl;
+        cout<<"X:"<<imageSprite.getPosition().x<<"Y:"<<imageSprite.getPosition().y<<endl;
     }
 
-    void setPosition(sf::Vector2f pos) {
-        float x = pos.x;
-        float y = pos.y;
-        float zigzagWidth = 30.0f;
-        float zigzagHeight = 10.0f;
-        float zigzagSegments = 6;
+    void draw(RenderWindow& window) {
+        window.draw(imageSprite);   // Draw the image
+        window.draw(dragRect);      // Draw the invisible rectangle for dragging
+    }
 
-        // Update zigzag pattern
-        for (int i = 0; i <= zigzagSegments; ++i) {
-            float px = x + i * (zigzagWidth / zigzagSegments);
-            float py = y + ((i % 2 == 0) ? 0 : zigzagHeight);
-            zigzag[i].position = sf::Vector2f(px, py);
+    bool contains(Vector2f mousePosition) const {
+        return dragRect.getGlobalBounds().contains(mousePosition);
+    }
+
+    void startDragging(Vector2f mousePosition) {
+        isDragging = true;
+        dragOffset = imageSprite.getPosition() - mousePosition;
+    }
+
+    void stopDragging() {
+        isDragging = false;
+    }
+
+    void updatePosition(Vector2f mousePosition) {
+        if (isDragging) {
+            Vector2f newPosition = mousePosition + dragOffset;
+            Vector2f centerPos(newPosition.x + (imageSize.x)/2.0f,newPosition.y + (imageSize.y)/2.0f);
+            // Update the position of both the image and the rectangle
+            imageSprite.setPosition(newPosition);
+            dragRect.setPosition(centerPos);
         }
-
-        leftTerminal.setPosition(x - 10.0f, y + zigzagHeight / 2.0f - 2.5f);
-        rightTerminal.setPosition(x + zigzagWidth, y + zigzagHeight / 2.0f - 2.5f);
-    }
-
-    void snapToGrid() {
-        sf::Vector2f position = zigzag[0].position;
-        float snappedX = std::round(position.x / cellSize) * cellSize;
-        float snappedY = std::round(position.y / cellSize) * cellSize;
-        setPosition(sf::Vector2f(snappedX, snappedY));
     }
 };
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Resistor Snap to Grid");
+    RenderWindow window(VideoMode(800, 600), "Drag Image Example");
+    ImGui::SFML::Init(window);
 
-    std::vector<Resistor> resistors;
-    bool placingResistor = false;
-    Resistor* currentResistor = nullptr;
+    DraggableElement draggable("textures/ResistorIcon.png", Vector2f(80, 40), Vector2f(10, 10), Vector2f(400, 300));
+
+    Clock deltaClock;
 
     while (window.isOpen()) {
-        sf::Event event;
+        Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
+            ImGui::SFML::ProcessEvent(event);
+
+            if (event.type == Event::Closed) {
                 window.close();
             }
-            else if (event.type == sf::Event::MouseButtonPressed) {
-                if (event.mouseButton.button == sf::Mouse::Left) {
-                    float mouseX = static_cast<float>(event.mouseButton.x);
-                    float mouseY = static_cast<float>(event.mouseButton.y);
+        }
 
-                    // Create a resistor and snap it to grid
-                    resistors.emplace_back(mouseX, mouseY);
-                    resistors.back().snapToGrid();
-                    currentResistor = &resistors.back();
-                    placingResistor = true;
-                }
+        ImGui::SFML::Update(window, deltaClock.restart());
+
+        Vector2f mousePosition = window.mapPixelToCoords(Mouse::getPosition(window));
+
+        if (Mouse::isButtonPressed(Mouse::Left)) {
+            if (draggable.contains(mousePosition)) {
+                draggable.startDragging(mousePosition);
             }
-            else if (event.type == sf::Event::MouseButtonReleased) {
-                if (event.mouseButton.button == sf::Mouse::Left && placingResistor && currentResistor) {
-                    currentResistor->snapToGrid();
-                    currentResistor = nullptr;
-                    placingResistor = false;
-                }
-            }
+            draggable.updatePosition(mousePosition);
+        } else {
+            draggable.stopDragging();
         }
 
-        if (placingResistor && currentResistor) {
-            // Update resistor's position to follow mouse cursor
-            sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            currentResistor->setPosition(mousePos);
-            currentResistor->snapToGrid(); // Snap the position to grid
-        }
-
-        window.clear(sf::Color::White);
-
-        // Draw grid (optional for visualization)
-        for (int i = 0; i < numRows; ++i) {
-            for (int j = 0; j < numCols; ++j) {
-                sf::RectangleShape cell(sf::Vector2f(cellSize, cellSize));
-                cell.setPosition(j * cellSize, i * cellSize);
-                cell.setFillColor(sf::Color::Transparent);
-                cell.setOutlineColor(sf::Color::Black);
-                cell.setOutlineThickness(1.0f);
-                window.draw(cell);
-            }
-        }
-
-        // Draw resistors
-        for (const auto& resistor : resistors) {
-            window.draw(resistor);
-        }
-
+        window.clear(Color::White);
+        draggable.draw(window);
+        ImGui::SFML::Render(window);
         window.display();
     }
 
+    ImGui::SFML::Shutdown();
     return 0;
 }
