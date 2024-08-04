@@ -1,4 +1,3 @@
-
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -7,7 +6,7 @@
 #include <cmath>
 #include <iostream>
 #include <memory>
-
+#include <sstream>
 #include "customlib/grid/grid.hpp"
 #include "imgui-SFML.h"
 
@@ -36,176 +35,216 @@ void drawGrid(ImDrawList* drawList, const ImVec2& offset) {
     }
   }
 }
-
 class DraggableElement {
- protected:
-  bool isDragging;
-  bool isRotating;
-  Vector2f dragOffset;
-  float rotateOffset;
-  bool on;
+protected:
+    bool isDragging;
+    bool isRotating;
+    Vector2f dragOffset;
+    float rotateOffset;
 
-  Vector2f imageSize;
-  Vector2f rectSize;
-  float radius = 10;
-  float space = 40;
+    Vector2f imageSize;
+    Vector2f rectSize;
+    float radius = 10;
+    float space = 40;
 
- public:
-  RectangleShape dragRect;  // Invisible rectangle for dragging
-  CircleShape node1;
-  CircleShape node2;
-  Sprite imageSprite;    // Image to be dragged
-  Texture imageTexture;  // Image texture
-  static int id;
-  static int quadrant;
-  DraggableElement(const Vector2f& position, string imagePath)
-      : isDragging(false),
-        imageSize(Vector2f(80, 40)),
-        rectSize(Vector2f(10, 10)) {
-    // Load the image texture
-    if (!imageTexture.loadFromFile(imagePath)) {
-      throw runtime_error("Failed to load image texture");
-    }
+    // Static Font Declaration
 
-    // Set up the image sprite
-    imageSprite.setTexture(imageTexture);
-    Vector2u textureSize = imageTexture.getSize();
+public:
+    bool on;
+    bool onagain;
+    static Font font;
 
-    // Calculate the scale factors
-    float scaleX = imageSize.x / textureSize.x;
-    float scaleY = imageSize.y / textureSize.y;
+    RectangleShape dragRect;  // Invisible rectangle for dragging
+    CircleShape node1;
+    CircleShape node2;
+    Sprite imageSprite;    // Image to be dragged
+    Texture imageTexture;  // Image texture
+    static int id;
+    static int quadrant;
 
-    // Apply the scale to the sprite
-    imageSprite.setScale(scaleX, scaleY);
+    // Variable display members
+    RectangleShape variableBox;
+    Text variableText;
 
-    imageSprite.setPosition(position);
-    imageSprite.setOrigin(imageSize / 2.0f);
+    DraggableElement(const Vector2f& position, string imagePath)
+        : isDragging(false),
+          imageSize(Vector2f(80, 40)),
+          rectSize(Vector2f(45, 15)) {
 
-    Vector2f centerPos(position.x + (imageSize.x) / 2.0f,
-                       position.y + (imageSize.y) / 2.0f);
+        // Load the image texture
+        if (!imageTexture.loadFromFile(imagePath)) {
+            throw runtime_error("Failed to load image texture");
+        }
 
-    dragRect.setSize(rectSize);
-    dragRect.setFillColor(Color::Red);
-    node1.setRadius(radius);
-    node2.setRadius(radius);
-    node1.setFillColor(Color::Yellow);
-    // node1.setOutlineThickness(1);
-    node2.setFillColor(Color::Yellow);
-    dragRect.setOrigin(rectSize /
-                       2.0f);  // Set the origin to the center of the rectangle
-    node1.setOrigin(rectSize /
-                    5.0f);  // Set the origin to the center of the rectangle
-    node2.setOrigin(rectSize /
-                    2.0f);  // Set the origin to the center of the rectangle
-    node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
-    node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
-    dragRect.setPosition(centerPos);
+        // Set up the image sprite
+        imageSprite.setTexture(imageTexture);
+        Vector2u textureSize = imageTexture.getSize();
 
-    //
-  }
+        // Calculate the scale factors
+        float scaleX = imageSize.x / textureSize.x;
+        float scaleY = imageSize.y / textureSize.y;
 
-  void draw(RenderWindow& window) {
-    window.draw(imageSprite);
-    window.draw(node1);
-    window.draw(node2);
-    window.draw(dragRect);
-    id++;
-  }
+        // Apply the scale to the sprite
+        imageSprite.setScale(scaleX, scaleY);
 
-  bool contains(Vector2f mousePosition) const {
-    return dragRect.getGlobalBounds().contains(mousePosition);
-  }
-  bool containsNode(Vector2f mousePosition) const {
-    return node1.getGlobalBounds().contains(mousePosition) ||
-           node2.getGlobalBounds().contains(mousePosition);
-  }
+        imageSprite.setPosition(position);
+        imageSprite.setOrigin(imageSize / 2.0f);
 
-  void startDragging(Vector2f mousePosition) {
-    isDragging = true;
-    dragOffset = imageSprite.getPosition() - mousePosition;
-  }
+        Vector2f centerPos(position.x + (imageSize.x) / 2.0f,
+                           position.y + (imageSize.y) / 2.0f);
 
-  void startRotating(Vector2f mousePosition) {
-      int x = imageSprite.getRotation();
-      cout<<quadrant<<endl;
-      imageSprite.setRotation(x + 90);
-
-      if (quadrant == 3){
-        Vector2f pos(imageSprite.getPosition());
-        Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
-                          pos.y + (imageSize.y) / 2.0f);
-        dragRect.setPosition(centerPos);
-        quadrant = 0;
-      }
-      else if(quadrant == 0 ){
-        Vector2f pos(imageSprite.getPosition());
-        Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
-                          pos.y + (imageSize.x) / 2.0f);
-        dragRect.setPosition(centerPos);
-        quadrant ++;
-      }else if(quadrant==1){
-        Vector2f pos(imageSprite.getPosition());
-        Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
-                          pos.y - (imageSize.y) / 2.0f);
-        dragRect.setPosition(centerPos);
-        quadrant++;
-      }else if(quadrant==2){
-        Vector2f pos(imageSprite.getPosition());
-        Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
-                          pos.y - (imageSize.x) / 2.0f);
-        dragRect.setPosition(centerPos);
-        quadrant ++;
-      }
-  }
-
-  void stopDragging() { isDragging = false; }
-  void stopRotating() { isRotating = false; }
-
-  void updatePosition(Vector2f mousePosition) {
-    if (isDragging) {
-      int col = static_cast<int>((mousePosition.x + dragOffset.x ) / cellSize);
-      int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
-
-      Vector2f newPosition (grid[row][col].position.x , grid[row][col].position.y - 3.0f) ;
-      // if(quadrant == 0){
-      Vector2f centerPos;
-      if (quadrant == 0){
-        centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
-                          newPosition.y + (imageSize.y) / 2.0f);
-      }
-      else if(quadrant == 1 ){
-        centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
-                          newPosition.y + (imageSize.x) / 2.0f);
-      }else if(quadrant==2){
-        
-        centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
-                          newPosition.y - (imageSize.y) / 2.0f);
-
-      }else if(quadrant==3){
-        
-        centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
-                          newPosition.y - (imageSize.x) / 2.0f);
-      }
-        imageSprite.setPosition(newPosition);
+        dragRect.setSize(rectSize);
+        dragRect.setFillColor(Color::Red);
+        node1.setRadius(radius);
+        node2.setRadius(radius);
+        node1.setFillColor(Color::Yellow);
+        node2.setFillColor(Color::Yellow);
+        dragRect.setOrigin(rectSize / 2.0f);  // Set the origin to the center of the rectangle
+        node1.setOrigin(rectSize / 5.0f);  // Set the origin to the center of the rectangle
+        node2.setOrigin(rectSize / 2.0f);  // Set the origin to the center of the rectangle
         node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
         node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
-
         dragRect.setPosition(centerPos);
-      // }
 
+        // Initialize variable box and text
+        variableBox.setSize(Vector2f(50, 25));
+        variableBox.setFillColor(Color(0, 0, 0, 150)); // Semi-transparent background
+        variableBox.setOutlineColor(Color::White);
+        variableBox.setOutlineThickness(1);
+
+        variableText.setFont(font);
+        variableText.setCharacterSize(14);
+        variableText.setFillColor(Color::White);
     }
-  }
-  void updateRotation() {}
-  int connectedA(int a) {
-    if (a) {
-      return 1;
-      on = true;
-    } else {
-      return 0;
+
+    virtual void draw(RenderWindow& window) {
+        window.draw(imageSprite);
+        window.draw(node1);
+        window.draw(node2);
+        window.draw(dragRect);
+
+        // Update and draw the variable box
+        drawVariableBox(window);
+
+        id++;
     }
-  }
-  int connectedB() { return 1; }
+
+    virtual void drawVariableBox(RenderWindow& window) {
+        // Set the position for the variable box and text
+        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(0, imageSize.y / 2 + 10);
+        variableBox.setPosition(boxPosition);
+
+        // Update text content and position
+        variableText.setString(to_string(98)); // Use actual variable value
+        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+
+        // Draw box and text
+        window.draw(variableBox);
+        window.draw(variableText);
+    }
+
+    bool contains(Vector2f mousePosition) const {
+        return dragRect.getGlobalBounds().contains(mousePosition);
+    }
+
+    bool containsNode(Vector2f mousePosition) const {
+        return node1.getGlobalBounds().contains(mousePosition) ||
+               node2.getGlobalBounds().contains(mousePosition);
+    }
+
+    void startDragging(Vector2f mousePosition) {
+        isDragging = true;
+        dragOffset = imageSprite.getPosition() - mousePosition;
+    }
+
+    void startRotating(Vector2f mousePosition) {
+        int x = imageSprite.getRotation();
+        cout << quadrant << endl;
+        imageSprite.setRotation(x + 90);
+
+        if (quadrant == 3) {
+            Vector2f pos(imageSprite.getPosition());
+            Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
+                               pos.y + (imageSize.y) / 2.0f);
+            dragRect.setPosition(centerPos);
+            quadrant = 0;
+        } else if (quadrant == 0) {
+            Vector2f pos(imageSprite.getPosition());
+            Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
+                               pos.y + (imageSize.x) / 2.0f);
+            dragRect.setPosition(centerPos);
+            quadrant++;
+        } else if (quadrant == 1) {
+            Vector2f pos(imageSprite.getPosition());
+            Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
+                               pos.y - (imageSize.y) / 2.0f);
+            dragRect.setPosition(centerPos);
+            quadrant++;
+        } else if (quadrant == 2) {
+            Vector2f pos(imageSprite.getPosition());
+            Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
+                               pos.y - (imageSize.x) / 2.0f);
+            dragRect.setPosition(centerPos);
+            quadrant++;
+        }
+    }
+
+    void stopDragging() { isDragging = false; }
+    void stopRotating() { isRotating = false; }
+
+    void updatePosition(Vector2f mousePosition) {
+        if (isDragging) {
+            int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
+            int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
+
+            Vector2f newPosition(grid[row][col].position.x,
+                                 grid[row][col].position.y - 3.0f);
+
+            Vector2f centerPos;
+            if (quadrant == 0) {
+                centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
+                                     newPosition.y + (imageSize.y) / 2.0f);
+            } else if (quadrant == 1) {
+                centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
+                                     newPosition.y + (imageSize.x) / 2.0f);
+            } else if (quadrant == 2) {
+                centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
+                                     newPosition.y - (imageSize.y) / 2.0f);
+
+            } else if (quadrant == 3) {
+                centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
+                                     newPosition.y - (imageSize.x) / 2.0f);
+            }
+            imageSprite.setPosition(newPosition);
+            node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
+            node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
+
+            dragRect.setPosition(centerPos);
+        }
+    }
+
+    void updateRotation() {}
+
+    int connectedA(int a) {
+        if (a) {
+            return 1;
+            on = true;
+        } else {
+            return 0;
+        }
+    }
+
+    int connectedB() {
+        onagain = true;
+        return 1;
+    }
+
+    virtual void TurnOn() {};
 };
+
+// Static member definition
+Font DraggableElement::font;
+
 int DraggableElement::id = 0;
 int DraggableElement::quadrant = 0;
 
@@ -219,19 +258,45 @@ class Resistor : public Component, public DraggableElement {
   static const string image;
   Texture resistorTexture;
   ImTextureID resistorTextureID;
-  // ImTextureID batteryTextureID =
-  // (void*)(intptr_t)batteryTexture.getNativeHandle();
+  float resistance;
  public:
-  // Resistor( ImVec2 pos, const std::string& uniqueID, float initialVar
-  // = 45.0f)
-  //     : Component(), ElementRender( pos, uniqueID, initialVar) {
-
-  // }
-
   Resistor(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {}
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),resistance(initialVar) {}
   static const string& getImagePath() { return image; }
-  // wire is connected to resistor
+
+  void HellNah(){
+    cout<<"HellNah"<<endl;
+  }
+  void draw(RenderWindow& window) {
+        window.draw(imageSprite);
+        window.draw(node1);
+        window.draw(node2);
+        window.draw(dragRect);
+
+        // Update and draw the variable box
+        drawVariableBox(window);
+
+        id++;
+  }
+  void drawVariableBox(RenderWindow& window) {
+
+        ostringstream oss;
+        oss.precision(1); // Set precision to 1 decimal place
+        oss << std::fixed << resistance;
+
+        // Set the position for the variable box and text
+        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(0, imageSize.y / 2 + 10);
+        variableBox.setPosition(boxPosition);
+
+        // Update text content and position
+        variableText.setString(oss.str()); // Use actual variable value
+        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+
+        // Draw box and text
+        window.draw(variableBox);
+        window.draw(variableText);
+    }
+
 };
 
 const string Resistor::image = "textures/ResistorIcon.png";
@@ -246,6 +311,11 @@ class Battery : public Component, public DraggableElement {
   }
 
   static const string& getImagePath() { return image; }
+  void TurnOn() {
+    cout << "hey" << endl;
+    node1.setFillColor(Color::Black);
+    node2.setFillColor(Color::Black);
+  }
 };
 
 const string Battery::image = "textures/BatteryIcon.png";
@@ -272,11 +342,6 @@ class Bulb : public Component, public DraggableElement {
     cout << "Bulb is made" << endl;
   };
   static const string& getImagePath() { return image; }
-  void TurnOn() {
-    if (on) {
-      node1.setFillColor(Color::Red);
-    }
-  }
 };
 const string Bulb::image = "textures/ball.png";
 
@@ -287,13 +352,13 @@ class MenuList {
   int selectedItem;  // Track selected item index
   string components[7];
   bool itemPlaced;
-  static int id;
 
  public:
   MenuList()
       : selectedItem(-1),
         components{"Resistor", "Battery",    "Inductor", "Bulb", "Capacitor",
                    "Diode",    "Transistor"} {
+
     // Initialize textures and textureIDs here if necessary
   }
 
@@ -346,7 +411,7 @@ class MenuList {
     } else if (type == "Bulb") {
       return new Bulb(pos, initialVar);
     }
-    id++;
+    
     // Add more cases as needed
     return nullptr;
   }
@@ -354,7 +419,6 @@ class MenuList {
 
   void setItemPlaced(bool placed) { itemPlaced = placed; }
 };
-int MenuList::id = 0;
 
 class CircuitElement {
  public:
@@ -369,15 +433,6 @@ class Load : public CircuitElement {
 
   int connect() const override { return is_connected ? 1 : 0; }
 };
-// not Necessary
-// class Wire : public CircuitElement {
-//  public:
-//   int connect() const override { return 1; }
-
-//   int connectWith(const CircuitElement& element) const {
-//     return element.is_connected ? 1 : 0;
-//   }
-// };
 
 class Switch : public CircuitElement {
  public:
@@ -400,8 +455,8 @@ struct Line {
   Line(Vector2f start, Vector2f end) {
     points[0].position = start;
     points[1].position = end;
-    points[0].color = Color::Black;
-    points[1].color = Color::Black;
+    points[0].color = Color::Red;
+    points[1].color = Color::Red;
   }
   int connectedA(int a) {
     if (a) {
@@ -413,227 +468,212 @@ struct Line {
   int connectedB() { return 1; }
 };
 
-// void circuitConnection(bool switchToggle) {
-//   int a, b, c;
-//   unique_ptr<Battery[]> battery(new Battery[1]);
-//   unique_ptr<Load[]> load(new Load[1]);
-//   unique_ptr<Wire[]> wire(new Wire[2]);
-//   unique_ptr<Switch[]> switch_toggle(new Switch[1]);
-
-//   a = wire[0].connect() - battery[0].connect();
-//   switch_toggle[0].toggle(a, switchToggle);
-//   load[0].connect();
-//   b = wire[1].connectWith(load[0]);
-//   c = battery[0].connect() - b;
-
-//   if (c == 1) {
-//     // cout << "The circuit is on" << endl;
-//   } else {
-//     // cout << "The circuit is off" << endl;
-//   }
-// }
 class connection {
  public:
   connection() {}
 };
 
 void connectElements() { cout << "trying to connect" << endl; }
+
 int main() {
-  int batteryNumber = 0;
-  bool lineOn = false;
-  bool switchOn = true;
-  bool batteryAdd = false;
-  bool item = false;
-  int selectedItem = -1;
+    int batteryNumber = 0;
+    bool lineOn = false;
+    bool switchOn = true;
+    bool batteryAdd = false;
+    bool item = false;
+    int selectedItem = -1;
 
-  vector<Line> lines;
+    vector<Line> lines;
 
-  RenderWindow window(VideoMode(1366, 768), "Simulation",
-                      Style::Close | Style::Resize);
-  initializeGrid(numRows, cellSize, numCols, grid);
-
-  ImGui::SFML::Init(window);
-
-  Clock deltaClock;
-
-  MenuList menu;
-
-  // Dynamically load textures from component classes
-  vector<Texture> textures;
-  vector<string> imagePaths = {
-      Resistor::getImagePath(), Battery::getImagePath(),
-      Inductor::getImagePath(), Bulb::getImagePath()
-      // Add other component paths as needed
-  };
-
-  for (const auto& path : imagePaths) {
-    Texture texture;
-    if (texture.loadFromFile(path)) {
-      textures.push_back(texture);
-    } else {
-      cout << "Error in loading image: " << path << endl;
+    if (!DraggableElement::font.loadFromFile("arial.ttf")) {
+        throw runtime_error("Failed to load font");
     }
-  }
-  menu.setTextures(textures);
 
-  // vector<unique_ptr<ElementRender>> elementRenders;
-  vector<unique_ptr<DraggableElement>> components;
+    RenderWindow window(VideoMode(1366, 768), "Simulation",
+                        Style::Close | Style::Resize);
+    initializeGrid(numRows, cellSize, numCols, grid);
 
-  while (window.isOpen()) {
-    Event event;
-    while (window.pollEvent(event)) {
-      ImGui::SFML::ProcessEvent(event);
-      if (event.type == Event::Closed) {
-        window.close();
-      } else if (event.type == Event::MouseButtonPressed) {
-        if (event.mouseButton.button == Mouse::Left) {
-          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+    ImGui::SFML::Init(window);
 
-          for (auto& component : components) {
-            if (component->contains(mousePosition)) {
-              component->startDragging(mousePosition);
+    Clock deltaClock;
 
-              if (Mouse::isButtonPressed(Mouse::Right)) {
-                component->startRotating(mousePosition);
-              }
-            }
-            // line yeta bata connect hunxa
-            if (component->containsNode(mousePosition)) {
-              connectElements();
-              lines.push_back(Line(mousePosition, mousePosition));
-              for (auto& line : lines) {
-                line.connectedA(component->connectedB());
-              }
-            }
-          }
+    MenuList menu;
 
-          if (lineOn) {
-            lines.push_back(Line(mousePosition, mousePosition));
-          }
-        } else if (event.mouseButton.button == Mouse::Right) {
-          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
-          for (auto& component : components) {
-            if (component->contains(mousePosition)) {
-              if (Mouse::isButtonPressed(Mouse::Right)) {
-                component->startRotating(mousePosition);
-              }
-            }
-          }
+    // Dynamically load textures from component classes
+    vector<Texture> textures;
+    vector<string> imagePaths = {
+        Resistor::getImagePath(), Battery::getImagePath(),
+        Inductor::getImagePath(), Bulb::getImagePath()
+        // Add other component paths as needed
+    };
+
+    for (const auto& path : imagePaths) {
+        Texture texture;
+        if (texture.loadFromFile(path)) {
+            textures.push_back(texture);
+        } else {
+            cout << "Error in loading image: " << path << endl;
         }
-      } else if (event.type == Event::MouseButtonReleased) {
-        if (event.mouseButton.button == Mouse::Left) {
-          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
-          for (auto& component : components) {
-            component->stopDragging();
-            // line yeta ayera end hunxa
-            if (component->containsNode(mousePosition)) {
-              lines.back().points[1].position =
-                  Vector2f(event.mouseButton.x, event.mouseButton.y);
-              for (auto& line : lines) {
-                component->connectedA(line.connectedB());
-              }
+    }
+    menu.setTextures(textures);
+
+    vector<unique_ptr<DraggableElement>> components;
+
+    while (window.isOpen()) {
+        Event event;
+        while (window.pollEvent(event)) {
+            ImGui::SFML::ProcessEvent(event);
+
+            if (event.type == Event::Closed) {
+                window.close();
+            } else if (event.type == Event::MouseButtonPressed) {
+                if (event.mouseButton.button == Mouse::Left) {
+                    Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+
+                    for (auto& component : components) {
+                        if (component->contains(mousePosition)) {
+                            component->startDragging(mousePosition);
+
+                            if (Mouse::isButtonPressed(Mouse::Right)) {
+                                component->startRotating(mousePosition);
+                            }
+                        }
+                        // Check if a line connection should be made
+                        if (component->containsNode(mousePosition)) {
+                            connectElements();
+                            lines.push_back(Line(mousePosition, mousePosition));
+                            for (auto& line : lines) {
+                                line.connectedA(component->connectedB());
+                                if (component->on && component->onagain) {
+                                    component->TurnOn();
+                                }
+                            }
+                        }
+                    }
+
+                    if (lineOn) {
+                        lines.push_back(Line(mousePosition, mousePosition));
+                    }
+                } else if (event.mouseButton.button == Mouse::Right) {
+                    Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+                    for (auto& component : components) {
+                        if (component->contains(mousePosition)) {
+                            if (Mouse::isButtonPressed(Mouse::Right)) {
+                                component->startRotating(mousePosition);
+                            }
+                        }
+                    }
+                }
+            } else if (event.type == Event::MouseButtonReleased) {
+                if (event.mouseButton.button == Mouse::Left) {
+                    Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+                    for (auto& component : components) {
+                        component->stopDragging();
+                        // Check if a line connection should be ended
+                        if (component->containsNode(mousePosition)) {
+                            lines.back().points[1].position = Vector2f(event.mouseButton.x, event.mouseButton.y);
+                            for (auto& line : lines) {
+                                component->connectedA(line.connectedB());
+                            }
+                        }
+                    }
+
+                    if (lineOn) {
+                        lines.back().points[1].position = Vector2f(event.mouseButton.x, event.mouseButton.y);
+                    }
+                }
             }
-          }
-          // Bulb.stopDragging();
-
-          if (lineOn) {
-            lines.back().points[1].position =
-                Vector2f(event.mouseButton.x, event.mouseButton.y);
-          }
         }
-      }
-    }
 
-    if (Mouse::isButtonPressed(Mouse::Left)) {
-      Vector2f mousePos(Mouse::getPosition(window));
-      for (auto& component : components) {
-        component->updatePosition(mousePos);
-      }
+        if (Mouse::isButtonPressed(Mouse::Left)) {
+            Vector2f mousePos(Mouse::getPosition(window));
+            for (auto& component : components) {
+                component->updatePosition(mousePos);
+            }
 
-      if (lineOn && !lines.empty()) {
-        lines.back().points[1].position = mousePos;
-      }
-    }
+            if (lineOn && !lines.empty()) {
+                lines.back().points[1].position = mousePos;
+            }
+        }
 
-    ImGui::SFML::Update(window, deltaClock.restart());
-    window.clear(Color::Black);
+        ImGui::SFML::Update(window, deltaClock.restart());
+        window.clear(Color::Black);
 
-    ImVec2 windowSize(window.getSize().x, window.getSize().y);
+        ImVec2 windowSize(window.getSize().x, window.getSize().y);
 
-    ImGui::SetNextWindowSize(
-        windowSize,
-        ImGuiCond_Always);  // Set ImGui window size to match SFML window size
-    ImGui::SetNextWindowPos(
-        ImVec2(0, 0),
-        ImGuiCond_Always);  // Set ImGui window position to top-left corner
+        ImGui::SetNextWindowSize(
+            windowSize,
+            ImGuiCond_Always);  // Set ImGui window size to match SFML window size
+        ImGui::SetNextWindowPos(
+            ImVec2(0, 0),
+            ImGuiCond_Always);  // Set ImGui window position to top-left corner
 
-    ImGui::Begin("Main Layout", nullptr,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+        ImGui::Begin("Main Layout", nullptr,
+                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoMove);
 
-    // Left menu area
-    ImGui::BeginChild("Menu", ImVec2(200, 0), true,
-                      ImGuiWindowFlags_NoResize);  // Fixed width for the menu
-    ImGui::Text("Menu");
+        // Left menu area
+        ImGui::BeginChild("Menu", ImVec2(200, 0), true,
+                          ImGuiWindowFlags_NoResize);  // Fixed width for the menu
+        ImGui::Text("Menu");
 
-    menu.drawMenu();
+        menu.drawMenu();
 
-    ImGui::Checkbox("Switch", &switchOn);
-    if (ImGui::Button("Add Battery")) {
-      batteryAdd = true;
-      batteryNumber++;
-    }
-    if (ImGui::Button("Draw Line")) {
-      lineOn = !lineOn;
-    }
-    ImGui::EndChild();
-
-    ImGui::SameLine();
-
-    // Right content area with grid rendering
-    ImGui::BeginChild("Content", ImVec2(0, 0), true, ImGuiWindowFlags_NoResize);
-
-    // Draw the grid inside the ImGui child window
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 offset = ImGui::GetCursorScreenPos();
-
-    drawGrid(drawList, offset);
-
-    // Ensure we get the mouse position relative to the window
-    ImVec2 mousePos = ImGui::GetMousePos();
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !menu.isItemPlaced()) {
-      string selectedComponent = menu.getSelectedComponentName();
-      ImTextureID textureID = menu.getSelectedTextureID();
-
-      if (!selectedComponent.empty() && textureID) {
-        auto component =
-            menu.createComponent(selectedComponent, mousePos, 45.0f);
-        if (component) {
-          auto elementRender = dynamic_cast<DraggableElement*>(component);
-          if (elementRender) {
-            // elementRender->setTexture(textureID);
-            components.push_back(unique_ptr<DraggableElement>(elementRender));
-            menu.setItemPlaced(true);
-          }
+        ImGui::Checkbox("Switch", &switchOn);
+        if (ImGui::Button("Add Battery")) {
+            batteryAdd = true;
+            batteryNumber++;
         }
-      }
+
+        if (ImGui::Button("Draw Line")) {
+            lineOn = !lineOn;
+        }
+        ImGui::EndChild();
+
+        ImGui::SameLine();
+
+        // Right content area with grid rendering
+        ImGui::BeginChild("Content", ImVec2(0, 0), true, ImGuiWindowFlags_NoResize);
+
+        // Draw the grid inside the ImGui child window
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 offset = ImGui::GetCursorScreenPos();
+
+        drawGrid(drawList, offset);
+
+        // Ensure we get the mouse position relative to the window
+        ImVec2 mousePos = ImGui::GetMousePos();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !menu.isItemPlaced()) {
+            string selectedComponent = menu.getSelectedComponentName();
+            ImTextureID textureID = menu.getSelectedTextureID();
+
+            if (!selectedComponent.empty() && textureID) {
+                auto component = menu.createComponent(selectedComponent, mousePos, 45.0f);
+                if (component) {
+                    auto elementRender = dynamic_cast<DraggableElement*>(component);
+                    if (elementRender) {
+                        components.push_back(unique_ptr<DraggableElement>(elementRender));
+                        menu.setItemPlaced(true);
+                    }
+                }
+            }
+        }
+
+        ImGui::EndChild();
+        ImGui::End();
+        ImGui::SFML::Render(window);
+
+        for (auto& component : components) {
+            component->draw(window);
+        }
+
+        for (auto& line : lines) {
+            window.draw(line.points, 2, Lines);
+        }
+
+        window.display();
     }
 
-    ImGui::EndChild();
-    ImGui::End();
-    ImGui::SFML::Render(window);
-
-    for (auto& component : components) {
-      component->draw(window);
-    }
-
-    for (auto& line : lines) {
-      window.draw(line.points, 2, Lines);
-    }
-
-    window.display();
-  }
-
-  ImGui::SFML::Shutdown();
-  return 0;
+    ImGui::SFML::Shutdown();
+    return 0;
 }
