@@ -12,6 +12,7 @@
 
 using namespace sf;
 using namespace std;
+
 const float cellSize = 20.0f;
 const int numRows = 50;
 const int numCols = 70;
@@ -35,9 +36,9 @@ void drawGrid(ImDrawList* drawList, const ImVec2& offset) {
     }
   }
 }
+
 class DraggableElement {
 protected:
-    bool isDragging;
     bool isRotating;
     Vector2f dragOffset;
     float rotateOffset;
@@ -50,6 +51,7 @@ protected:
     // Static Font Declaration
 
 public:
+    bool isDragging;
     bool on;
     bool onagain;
     static Font font;
@@ -61,6 +63,7 @@ public:
     Texture imageTexture;  // Image texture
     static int id;
     static int quadrant;
+    bool showInputBox = false;
 
     // Variable display members
     RectangleShape variableBox;
@@ -107,8 +110,8 @@ public:
         dragRect.setPosition(centerPos);
 
         // Initialize variable box and text
-        variableBox.setSize(Vector2f(50, 25));
-        variableBox.setFillColor(Color(0, 0, 0, 150)); // Semi-transparent background
+        variableBox.setSize(Vector2f(60, 25));
+        variableBox.setFillColor(Color(0, 0, 0, 180)); // Semi-transparent background
         variableBox.setOutlineColor(Color::White);
         variableBox.setOutlineThickness(1);
 
@@ -116,6 +119,7 @@ public:
         variableText.setCharacterSize(14);
         variableText.setFillColor(Color::White);
     }
+
 
     virtual void draw(RenderWindow& window) {
         window.draw(imageSprite);
@@ -125,23 +129,13 @@ public:
 
         // Update and draw the variable box
         drawVariableBox(window);
-
         id++;
     }
 
-    virtual void drawVariableBox(RenderWindow& window) {
-        // Set the position for the variable box and text
-        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(0, imageSize.y / 2 + 10);
-        variableBox.setPosition(boxPosition);
+    virtual void handleInputBox() {}
 
-        // Update text content and position
-        variableText.setString(to_string(98)); // Use actual variable value
-        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
 
-        // Draw box and text
-        window.draw(variableBox);
-        window.draw(variableText);
-    }
+    virtual void drawVariableBox(RenderWindow& window) {}
 
     bool contains(Vector2f mousePosition) const {
         return dragRect.getGlobalBounds().contains(mousePosition);
@@ -256,57 +250,60 @@ class Component {
 
 class Resistor : public Component, public DraggableElement {
   static const string image;
-  Texture resistorTexture;
-  ImTextureID resistorTextureID;
   float resistance;
  public:
   Resistor(ImVec2 pos, float initialVar = 45.0f)
       : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),resistance(initialVar) {}
+
   static const string& getImagePath() { return image; }
 
-  void HellNah(){
-    cout<<"HellNah"<<endl;
-  }
-  void draw(RenderWindow& window) {
-        window.draw(imageSprite);
-        window.draw(node1);
-        window.draw(node2);
-        window.draw(dragRect);
-
-        // Update and draw the variable box
-        drawVariableBox(window);
-
-        id++;
-  }
   void drawVariableBox(RenderWindow& window) {
-
         ostringstream oss;
         oss.precision(1); // Set precision to 1 decimal place
-        oss << std::fixed << resistance;
+        oss << fixed << resistance;
 
         // Set the position for the variable box and text
-        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(0, imageSize.y / 2 + 10);
+        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
         variableBox.setPosition(boxPosition);
 
         // Update text content and position
-        variableText.setString(oss.str()); // Use actual variable value
+        variableText.setString(oss.str() + " Ohm"); // Use actual variable value
         variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
 
         // Draw box and text
         window.draw(variableBox);
         window.draw(variableText);
     }
-
+    void handleInputBox() {
+      // Set focus to the input box if it's shown
+      if (showInputBox) {
+          ImGui::SetNextWindowFocus();
+      }
+      ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+      // Begin the ImGui window
+      ImGui::Begin("Set Resistance", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+      // Input field for float values
+      ImGui::InputFloat(" ", &resistance);
+      // Close button
+      if (ImGui::Button("Close")) {
+          showInputBox = false; // Hide the input box
+      }
+      ImGui::End();
+    }
+    float getResistance(){
+      return resistance;
+    }
 };
 
 const string Resistor::image = "textures/ResistorIcon.png";
 
 class Battery : public Component, public DraggableElement {
+  float voltage;
  public:
   static const string image;
 
   Battery(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),voltage(initialVar) {
     cout << "Battery is made" << endl;
   }
 
@@ -316,20 +313,95 @@ class Battery : public Component, public DraggableElement {
     node1.setFillColor(Color::Black);
     node2.setFillColor(Color::Black);
   }
+
+  void drawVariableBox(RenderWindow& window) {
+        ostringstream oss;
+        oss.precision(1); // Set precision to 1 decimal place
+        oss << std::fixed << voltage;
+
+        // Set the position for the variable box and text
+        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
+        variableBox.setPosition(boxPosition);
+
+        // Update text content and position
+        variableText.setString(oss.str() + " V"); // Use actual variable value
+        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+
+        // Draw box and text
+        window.draw(variableBox);
+        window.draw(variableText);
+    }
+    void handleInputBox() {
+      // Set focus to the input box if it's shown
+      if (showInputBox) {
+          ImGui::SetNextWindowFocus();
+      }
+      ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+      // Begin the ImGui window
+      ImGui::Begin("Set Voltage", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+      // Input field for float values
+      ImGui::InputFloat(" ", &voltage);
+      // Close button
+      if (ImGui::Button("Close")) {
+          showInputBox = false; // Hide the input box
+      }
+      ImGui::End();
+    }
+    float getVoltage(){
+      return voltage;
+    }
 };
 
 const string Battery::image = "textures/BatteryIcon.png";
 
 class Inductor : public Component, public DraggableElement {
+  float inductance;
  public:
   static const string image;
 
   Inductor(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
-    cout << "Inductorery is made" << endl;
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),inductance(initialVar) {
+    cout << "Inductor is made" << endl;
   }
 
   static const string& getImagePath() { return image; }
+
+  void drawVariableBox(RenderWindow& window) {
+        ostringstream oss;
+        oss.precision(1); // Set precision to 1 decimal place
+        oss << std::fixed << inductance;
+
+        // Set the position for the variable box and text
+        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
+        variableBox.setPosition(boxPosition);
+
+        // Update text content and position
+        variableText.setString(oss.str() + " H"); // Use actual variable value
+        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+
+        // Draw box and text
+        window.draw(variableBox);
+        window.draw(variableText);
+    }
+    void handleInputBox() {
+      // Set focus to the input box if it's shown
+      if (showInputBox) {
+          ImGui::SetNextWindowFocus();
+      }
+      ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+      // Begin the ImGui window
+      ImGui::Begin("Set Inductance", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+      // Input field for float values
+      ImGui::InputFloat(" ", &inductance);
+      // Close button
+      if (ImGui::Button("Close")) {
+          showInputBox = false; // Hide the input box
+      }
+      ImGui::End();
+    }
+    float getInductance(){
+      return inductance;
+    }
 };
 const string Inductor::image = "textures/InductorIcon.png";
 
@@ -342,6 +414,7 @@ class Bulb : public Component, public DraggableElement {
     cout << "Bulb is made" << endl;
   };
   static const string& getImagePath() { return image; }
+
 };
 const string Bulb::image = "textures/ball.png";
 
@@ -485,7 +558,7 @@ int main() {
 
     vector<Line> lines;
 
-    if (!DraggableElement::font.loadFromFile("arial.ttf")) {
+    if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
         throw runtime_error("Failed to load font");
     }
 
@@ -601,20 +674,13 @@ int main() {
 
         ImVec2 windowSize(window.getSize().x, window.getSize().y);
 
-        ImGui::SetNextWindowSize(
-            windowSize,
-            ImGuiCond_Always);  // Set ImGui window size to match SFML window size
-        ImGui::SetNextWindowPos(
-            ImVec2(0, 0),
-            ImGuiCond_Always);  // Set ImGui window position to top-left corner
+        ImGui::SetNextWindowSize(windowSize,ImGuiCond_Always);  // Set ImGui window size to match SFML window size
+        ImGui::SetNextWindowPos(ImVec2(0, 0),ImGuiCond_Always);  // Set ImGui window position to top-left corner
 
-        ImGui::Begin("Main Layout", nullptr,
-                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoMove);
+        ImGui::Begin("Main Layout", nullptr,ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |ImGuiWindowFlags_NoMove);
 
         // Left menu area
-        ImGui::BeginChild("Menu", ImVec2(200, 0), true,
-                          ImGuiWindowFlags_NoResize);  // Fixed width for the menu
+        ImGui::BeginChild("Menu", ImVec2(200, 0), true, ImGuiWindowFlags_NoResize);  // Fixed width for the menu
         ImGui::Text("Menu");
 
         menu.drawMenu();
@@ -657,6 +723,15 @@ int main() {
                     }
                 }
             }
+        }
+        Vector2f mousePosition = window.mapPixelToCoords(Mouse::getPosition(window));
+        for (auto& component : components) {
+          if (component->variableBox.getGlobalBounds().contains(mousePosition) && Mouse::isButtonPressed(Mouse::Left)&& !component->isDragging) {
+            component->showInputBox = true;
+          }
+          if (component->showInputBox) {
+            component->handleInputBox();
+          }
         }
 
         ImGui::EndChild();
