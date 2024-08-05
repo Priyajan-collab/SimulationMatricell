@@ -46,7 +46,7 @@ protected:
 
     Vector2f imageSize;
     Vector2f rectSize;
-    float radius = 10;
+    float radius = 5;
     float space = 40;
 
     // Static Font Declaration
@@ -104,15 +104,23 @@ public:
 
         dragRect.setSize(rectSize);
         dragRect.setFillColor(Color::Red);
-        node1.setRadius(radius);
-        node2.setRadius(radius);
-        node1.setFillColor(Color::Yellow);
-        node2.setFillColor(Color::Yellow);
+
+        // Initialize node1 and node2 positions
+      node1.setRadius(radius);
+      node2.setRadius(radius);
+      node1.setFillColor(Color(0, 0, 0, 180));
+      node2.setFillColor(Color(0, 0, 0, 180));
+
+    // Set origin for nodes
+      node1.setOrigin(radius,radius);
+      node2.setOrigin(radius, radius);
+
+    node1.setPosition(Vector2f(centerPos.x  - imageSize.x/2, centerPos.y));
+    node2.setPosition(Vector2f(centerPos.x +  imageSize.x/2, centerPos.y));
+
+        
+
         dragRect.setOrigin(rectSize / 2.0f);  // Set the origin to the center of the rectangle
-        node1.setOrigin(rectSize / 5.0f);  // Set the origin to the center of the rectangle
-        node2.setOrigin(rectSize / 2.0f);  // Set the origin to the center of the rectangle
-        node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
-        node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
         dragRect.setPosition(centerPos);
 
         // Initialize variable box and text
@@ -164,24 +172,33 @@ public:
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
                          pos.y + (imageSize.y) / 2.0f);
+      node1.setPosition(Vector2f(centerPos.x  - imageSize.x/2.0f, centerPos.y));
+      node2.setPosition(Vector2f(centerPos.x +  imageSize.x/2.0f, centerPos.y));
       dragRect.setPosition(centerPos);
       quadrant = 0;
     } else if (quadrant == 0) {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
                          pos.y + (imageSize.x) / 2.0f);
+
+      node1.setPosition(Vector2f(pos.x  - imageSize.y/2.0f, pos.y)); 
+      node2.setPosition(Vector2f(pos.x  - imageSize.y/2.0f, pos.y + imageSize.x));         
       dragRect.setPosition(centerPos);
       quadrant++;
     } else if (quadrant == 1) {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
                          pos.y - (imageSize.y) / 2.0f);
+      node1.setPosition(Vector2f(pos.x, pos.y  - imageSize.y/2.0f)); 
+      node2.setPosition(Vector2f(pos.x  - imageSize.x, pos.y  - imageSize.y/2.0f));
       dragRect.setPosition(centerPos);
       quadrant++;
     } else if (quadrant == 2) {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
                          pos.y - (imageSize.x) / 2.0f);
+      node1.setPosition(Vector2f(pos.x  + imageSize.y/2.0f, pos.y)); 
+      node2.setPosition(Vector2f(pos.x  + imageSize.y/2.0f, pos.y - imageSize.x));
       dragRect.setPosition(centerPos);
       quadrant++;
     }
@@ -203,20 +220,27 @@ public:
             if (quadrant == 0) {
                 centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
                                      newPosition.y + (imageSize.y) / 2.0f);
+                node1.setPosition(Vector2f(newPosition.x , newPosition.y + imageSize.y / 2.0f));
+                node2.setPosition(Vector2f(newPosition.x +  imageSize.x, newPosition.y + imageSize.y / 2.0f));
             } else if (quadrant == 1) {
                 centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
                                      newPosition.y + (imageSize.x) / 2.0f);
+                node1.setPosition(Vector2f(newPosition.x  - imageSize.y/2.0f, newPosition.y)); 
+                 node2.setPosition(Vector2f(newPosition.x  - imageSize.y/2.0f, newPosition.y + imageSize.x)); 
             } else if (quadrant == 2) {
                 centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
                                      newPosition.y - (imageSize.y) / 2.0f);
+                node1.setPosition(Vector2f(newPosition.x, newPosition.y  - imageSize.y/2.0f)); 
+                node2.setPosition(Vector2f(newPosition.x  - imageSize.x, newPosition.y  - imageSize.y/2.0f));
 
             } else if (quadrant == 3) {
                 centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
                                      newPosition.y - (imageSize.x) / 2.0f);
+                 node1.setPosition(Vector2f(newPosition.x  + imageSize.y/2.0f, newPosition.y)); 
+                  node2.setPosition(Vector2f(newPosition.x  + imageSize.y/2.0f, newPosition.y - imageSize.x));
             }
             imageSprite.setPosition(newPosition);
-            node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
-            node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
+           
 
             dragRect.setPosition(centerPos);
         }
@@ -789,7 +813,7 @@ int main() {
         Vector2f mousePosition = window.mapPixelToCoords(Mouse::getPosition(window));
         for (auto& component : components) {
           if (component->variableBox.getGlobalBounds().contains(mousePosition) && Mouse::isButtonPressed(Mouse::Left)&& !component->isDragging) {
-            component->showInputBox = true;
+            component->showInputBox = true; 
           }
           if (component->showInputBox) {
             component->handleInputBox();
