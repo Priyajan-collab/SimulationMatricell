@@ -161,7 +161,7 @@ class DraggableElement {
     isDragging = true;
     dragOffset = imageSprite.getPosition() - mousePosition;
   }
-  void startRotating(Vector2f mousePosition) {
+  virtual void startRotating(Vector2f mousePosition) {
     int x = imageSprite.getRotation();
     cout << quadrant << endl;
     imageSprite.setRotation(x + 90);
@@ -210,7 +210,7 @@ class DraggableElement {
   void stopDragging() { isDragging = false; }
   void stopRotating() { isRotating = false; }
 
-  void updatePosition(Vector2f mousePosition) {
+  virtual void updatePosition(Vector2f mousePosition) {
     mousepox = mousePosition;
     if (isDragging) {
       int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
@@ -327,7 +327,126 @@ class ANDGATE : public DraggableElement, public Component {
   bool containsInput2(Vector2f mousePosition) const {
     return input2.getGlobalBounds().contains(mousePosition);
   }
+  void updatePosition(Vector2f mousePosition) {
+    mousepox = mousePosition;
+    if (isDragging) {
+      int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
+      int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
 
+      Vector2f newPosition(grid[row][col].position.x,
+                           grid[row][col].position.y - 3.0f);
+
+      Vector2f centerPos;
+      if (quadrant == 0) {
+        centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
+                             newPosition.y + (imageSize.y) / 2.0f);
+        node1.setPosition(
+            Vector2f(newPosition.x, newPosition.y + imageSize.y / 2.0f));
+        node2.setPosition(Vector2f(newPosition.x + imageSize.x,
+                                   newPosition.y + imageSize.y / 2.0f));
+      } else if (quadrant == 1) {
+        centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
+                             newPosition.y + (imageSize.x) / 2.0f);
+        node1.setPosition(
+            Vector2f(newPosition.x - imageSize.y / 2.0f, newPosition.y));
+        node2.setPosition(Vector2f(newPosition.x - imageSize.y / 2.0f,
+                                   newPosition.y + imageSize.x));
+      } else if (quadrant == 2) {
+        centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
+                             newPosition.y - (imageSize.y) / 2.0f);
+        node1.setPosition(
+            Vector2f(newPosition.x, newPosition.y - imageSize.y / 2.0f));
+        node2.setPosition(Vector2f(newPosition.x - imageSize.x,
+                                   newPosition.y - imageSize.y / 2.0f));
+
+      } else if (quadrant == 3) {
+        centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
+                             newPosition.y - (imageSize.x) / 2.0f);
+        node1.setPosition(
+            Vector2f(newPosition.x + imageSize.y / 2.0f, newPosition.y));
+        node2.setPosition(Vector2f(newPosition.x + imageSize.y / 2.0f,
+                                   newPosition.y - imageSize.x));
+      }
+      imageSprite.setPosition(newPosition);
+      input1.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+      input2.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
+      output.setPosition(
+          Vector2f(node2.getPosition().x, node2.getPosition().y));
+      dragRect.setPosition(centerPos);
+    }
+  }
+  void startRotating(Vector2f mousePosition) {
+    int x = imageSprite.getRotation();
+    cout << quadrant << endl;
+    imageSprite.setRotation(x + 90);
+
+    if (quadrant == 3) {
+      Vector2f pos(imageSprite.getPosition());
+      Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
+                         pos.y + (imageSize.y) / 2.0f);
+      node1.setPosition(
+          Vector2f(centerPos.x - imageSize.x / 2.0f, centerPos.y));
+      node2.setPosition(
+          Vector2f(centerPos.x + imageSize.x / 2.0f, centerPos.y));
+      input1.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+      input2.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
+      output.setPosition(
+          Vector2f(node2.getPosition().x, node2.getPosition().y));
+      dragRect.setPosition(centerPos);
+      quadrant = 0;
+    } else if (quadrant == 0) {
+      Vector2f pos(imageSprite.getPosition());
+      Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
+                         pos.y + (imageSize.x) / 2.0f);
+
+      node1.setPosition(Vector2f(pos.x - imageSize.y / 2.0f, pos.y));
+      node2.setPosition(
+          Vector2f(pos.x - imageSize.y / 2.0f, pos.y + imageSize.x));
+      dragRect.setPosition(centerPos);
+      input1.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+      input2.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
+      output.setPosition(
+          Vector2f(node2.getPosition().x, node2.getPosition().y));
+      quadrant++;
+    } else if (quadrant == 1) {
+      Vector2f pos(imageSprite.getPosition());
+      Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
+                         pos.y - (imageSize.y) / 2.0f);
+      node1.setPosition(Vector2f(pos.x, pos.y - imageSize.y / 2.0f));
+      node2.setPosition(
+          Vector2f(pos.x - imageSize.x, pos.y - imageSize.y / 2.0f));
+      dragRect.setPosition(centerPos);
+      input1.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+      input2.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
+      output.setPosition(
+          Vector2f(node2.getPosition().x, node2.getPosition().y));
+      quadrant++;
+    } else if (quadrant == 2) {
+      Vector2f pos(imageSprite.getPosition());
+      Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
+                         pos.y - (imageSize.x) / 2.0f);
+      node1.setPosition(Vector2f(pos.x + imageSize.y / 2.0f, pos.y));
+      node2.setPosition(
+          Vector2f(pos.x + imageSize.y / 2.0f, pos.y - imageSize.x));
+
+      dragRect.setPosition(centerPos);
+      input1.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+      input2.setPosition(
+          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
+      output.setPosition(
+          Vector2f(node2.getPosition().x, node2.getPosition().y));
+      quadrant++;
+    }
+  }
   void draw(RenderWindow& window) {
     window.draw(imageSprite);
     window.draw(node1);
