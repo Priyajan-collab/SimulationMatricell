@@ -8,7 +8,7 @@
 #include <memory>
 #include <sstream>
 
-#include "customlib/grid/grid.hpp"
+#include "../include/grid/grid.hpp"
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -258,20 +258,8 @@ class DraggableElement {
 
   void updateRotation() {}
 
-  int connectedA(int a) {
-    if (a) {
-      on = true;
-    } else {
-      on = false;
-    }
-  }
-  void connectedB(bool b) {
-    if (b) {
-      onagain = true;
-    } else {
-      onagain = false;
-    }
-  }
+  int connectedA(int a) { on = a; }
+  void connectedB(bool b) { onagain = b; }
   virtual void TurnOn(bool) {};
 };
 
@@ -382,12 +370,17 @@ const string ORGATE::image = "textures/ball.png";
 class Resistor : public Component, public DraggableElement {
   static const string image;
   float resistance;
+  float voltage;
 
  public:
+  static int countResistor;
+  int id_resistor = countResistor;
   Resistor(ImVec2 pos, float initialVar = 45.0f)
       : Component(),
         DraggableElement(Vector2f(pos.x, pos.y), image),
-        resistance(initialVar) {}
+        resistance(initialVar) {
+    countResistor++;
+  }
 
   static const string& getImagePath() { return image; }
 
@@ -427,8 +420,13 @@ class Resistor : public Component, public DraggableElement {
     ImGui::End();
   }
   float getResistance() { return resistance; }
+  float getVolatageDrop(float totalResistance, float totalVoltage) {
+    float value = totalVoltage * ((resistance) / (totalResistance));
+    return value;
+  }
 };
 
+int Resistor::countResistor = 0;
 const string Resistor::image = "textures/ResistorIcon.png";
 
 class Battery : public Component, public DraggableElement {
@@ -725,7 +723,7 @@ int main() {
 
   vector<Line> lines;
 
-  if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
+  if (!DraggableElement::font.loadFromFile("textures/notosans.ttf")) {
     throw runtime_error("Failed to load font");
   }
 
@@ -810,10 +808,15 @@ int main() {
               connectElements();
               lines.push_back(Line(mousePosition, mousePosition));
             }
-          }
 
-          if (lineOn) {
-            lines.push_back(Line(mousePosition, mousePosition));
+            if (lineOn) {
+              lines.push_back(Line(mousePosition, mousePosition));
+              Bulb* ptrbulb = dynamic_cast<Bulb*>(component.get());
+              if (ptrbulb) {
+                ptrbulb->connectedA(true);
+                ptrbulb->connectedB(true);
+              }
+            }
           }
         } else if (event.mouseButton.button == Mouse::Right) {
           Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
@@ -834,7 +837,6 @@ int main() {
             if (component->containsNode(mousePosition)) {
               lines.back().points[1].position =
                   Vector2f(event.mouseButton.x, event.mouseButton.y);
-              complete = !complete;
             }
           }
           // Bulb.stopDragging();
@@ -846,14 +848,7 @@ int main() {
         }
       }
     }
-    if (complete) {
-      for (auto& component : components) {
-        if (component->label == "bulb") {
-          component->connectedA(true);
-          component->connectedB(true);
-        }
-      }
-    }
+
     if (Mouse::isButtonPressed(Mouse::Left)) {
       Vector2f mousePos(Mouse::getPosition(window));
       for (auto& component : components) {
@@ -900,19 +895,34 @@ int main() {
     if (ImGui::Button("Draw Line")) {
       lineOn = !lineOn;
     }
-    if(ImGui::Button("Calculate")){
-      float totalResistance=0.0f,totalVoltage=0.0f;
-      for(auto& component: components){
+    if (ImGui::Button("Calculate")) {
+      float totalResistance = 0.0f, totalVoltage = 0.0f;
+      float voltageDrop;
+      vector<float> tVD;
+      vector<Resistor> resistors;
+      for (auto& component : components) {
         Resistor* resistorPtr = dynamic_cast<Resistor*>(component.get());
         Battery* batteryPtr = dynamic_cast<Battery*>(component.get());
-        if(resistorPtr){
-          totalResistance += resistorPtr->getResistance();
-        }
-        if(batteryPtr){
+
+        if (batteryPtr) {
           totalVoltage += batteryPtr->getVoltage();
         }
+        if (resistorPtr) {
+          resistors.push_back(*resistorPtr);
+          totalResistance += resistorPtr->getResistance();
+        }
       }
-      cout<<"Total Current Flowing: "<<totalVoltage/totalResistance<<endl;
+      for (auto& resistor : resistors) {
+        float voltageDrop =
+            resistor.getVolatageDrop(totalResistance, totalVoltage);
+        std::cout << "id:" << resistor.id_resistor
+                  << "   ::voltage drop::" << voltageDrop
+                  << ",,resistor ko resistance" << resistor.getResistance()
+                  << std::endl;
+      }
+      resistors.clear();
+      cout << "Total Current Flowing: " << totalVoltage / totalResistance
+           << endl;
     }
     ImGui::EndChild();
 
