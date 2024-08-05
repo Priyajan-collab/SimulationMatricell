@@ -40,95 +40,101 @@ void drawGrid(ImDrawList* drawList, const ImVec2& offset) {
 }
 
 class DraggableElement {
- protected:
-  bool isRotating;
-  Vector2f dragOffset;
-  float rotateOffset;
 
-  Vector2f imageSize;
-  Vector2f rectSize;
-  float radius = 10;
-  float space = 40;
+protected:
+    bool isRotating;
+    Vector2f dragOffset;
+    float rotateOffset;
 
-  // Static Font Declaration
+    Vector2f imageSize;
+    Vector2f rectSize;
+    float radius = 5;
+    float space = 40;
 
- public:
-  bool isDragging;
-  bool on = false;
-  bool onagain = false;
-  static Font font;
+    // Static Font Declaration
 
-  RectangleShape dragRect;  // Invisible rectangle for dragging
-  CircleShape node1;
-  CircleShape node2;
-  Sprite imageSprite;    // Image to be dragged
-  Texture imageTexture;  // Image texture
-  static int id;
-  static int quadrant;
-  bool showInputBox = false;
-  static int number_of_obj;
-  int id_component;
-  string label;
-  Vector2f mousepox;
+public:
+    bool isDragging;
+    bool on = false;
+    bool onagain = false;
+    static Font font;
 
-  // Variable display members
-  RectangleShape variableBox;
-  Text variableText;
+    RectangleShape dragRect;  // Invisible rectangle for dragging
+    CircleShape node1;
+    CircleShape node2;
+    Sprite imageSprite;    // Image to be dragged
+    Texture imageTexture;  // Image texture
+    static int id;
+    static int quadrant;
+    bool showInputBox = false;
+    static int number_of_obj;
+    int id_component;
+    string label;
+    Vector2f mousepox;
 
-  DraggableElement(const Vector2f& position, string imagePath)
-      : isDragging(false),
-        imageSize(Vector2f(80, 40)),
-        rectSize(Vector2f(45, 15)) {
-    // Load the image texture
-    number_of_obj++;
-    if (!imageTexture.loadFromFile(imagePath)) {
-      throw runtime_error("Failed to load image texture");
+    // Variable display members
+    RectangleShape variableBox;
+    Text variableText;
+
+    DraggableElement(const Vector2f& position, string imagePath)
+        : isDragging(false),
+          imageSize(Vector2f(80, 40)),
+          rectSize(Vector2f(45, 15)) {
+
+        // Load the image texture
+         number_of_obj++;
+        if (!imageTexture.loadFromFile(imagePath)) {
+            throw runtime_error("Failed to load image texture");
+        }
+
+        // Set up the image sprite
+        imageSprite.setTexture(imageTexture);
+        Vector2u textureSize = imageTexture.getSize();
+
+        // Calculate the scale factors
+        float scaleX = imageSize.x / textureSize.x;
+        float scaleY = imageSize.y / textureSize.y;
+
+        // Apply the scale to the sprite
+        imageSprite.setScale(scaleX, scaleY);
+
+        imageSprite.setPosition(position);
+        imageSprite.setOrigin(imageSize / 2.0f);
+
+        Vector2f centerPos(position.x + (imageSize.x) / 2.0f,
+                           position.y + (imageSize.y) / 2.0f);
+
+        dragRect.setSize(rectSize);
+        dragRect.setFillColor(Color::Red);
+
+        // Initialize node1 and node2 positions
+      node1.setRadius(radius);
+      node2.setRadius(radius);
+      node1.setFillColor(Color(0, 0, 0, 180));
+      node2.setFillColor(Color(0, 0, 0, 180));
+
+    // Set origin for nodes
+      node1.setOrigin(radius,radius);
+      node2.setOrigin(radius, radius);
+
+    node1.setPosition(Vector2f(centerPos.x  - imageSize.x/2, centerPos.y));
+    node2.setPosition(Vector2f(centerPos.x +  imageSize.x/2, centerPos.y));
+
+        
+
+        dragRect.setOrigin(rectSize / 2.0f);  // Set the origin to the center of the rectangle
+        dragRect.setPosition(centerPos);
+
+        // Initialize variable box and text
+        variableBox.setSize(Vector2f(60, 25));
+        variableBox.setFillColor(Color(0, 0, 0, 180)); // Semi-transparent background
+        variableBox.setOutlineColor(Color::White);
+        variableBox.setOutlineThickness(1);
+
+        variableText.setFont(font);
+        variableText.setCharacterSize(14);
+        variableText.setFillColor(Color::White);
     }
-
-    // Set up the image sprite
-    imageSprite.setTexture(imageTexture);
-    Vector2u textureSize = imageTexture.getSize();
-
-    // Calculate the scale factors
-    float scaleX = imageSize.x / textureSize.x;
-    float scaleY = imageSize.y / textureSize.y;
-
-    // Apply the scale to the sprite
-    imageSprite.setScale(scaleX, scaleY);
-
-    imageSprite.setPosition(position);
-    imageSprite.setOrigin(imageSize / 2.0f);
-
-    Vector2f centerPos(position.x + (imageSize.x) / 2.0f,
-                       position.y + (imageSize.y) / 2.0f);
-
-    dragRect.setSize(rectSize);
-    dragRect.setFillColor(Color::Red);
-    node1.setRadius(radius);
-    node2.setRadius(radius);
-    node1.setFillColor(Color::Yellow);
-    node2.setFillColor(Color::Yellow);
-    dragRect.setOrigin(rectSize /
-                       2.0f);  // Set the origin to the center of the rectangle
-    node1.setOrigin(rectSize /
-                    5.0f);  // Set the origin to the center of the rectangle
-    node2.setOrigin(rectSize /
-                    2.0f);  // Set the origin to the center of the rectangle
-    node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
-    node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
-    dragRect.setPosition(centerPos);
-
-    // Initialize variable box and text
-    variableBox.setSize(Vector2f(60, 25));
-    variableBox.setFillColor(
-        Color(0, 0, 0, 180));  // Semi-transparent background
-    variableBox.setOutlineColor(Color::White);
-    variableBox.setOutlineThickness(1);
-
-    variableText.setFont(font);
-    variableText.setCharacterSize(14);
-    variableText.setFillColor(Color::White);
-  }
 
   virtual void draw(RenderWindow& window) {
     window.draw(imageSprite);
@@ -166,63 +172,80 @@ class DraggableElement {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
                          pos.y + (imageSize.y) / 2.0f);
+      node1.setPosition(Vector2f(centerPos.x  - imageSize.x/2.0f, centerPos.y));
+      node2.setPosition(Vector2f(centerPos.x +  imageSize.x/2.0f, centerPos.y));
       dragRect.setPosition(centerPos);
       quadrant = 0;
     } else if (quadrant == 0) {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
                          pos.y + (imageSize.x) / 2.0f);
+
+      node1.setPosition(Vector2f(pos.x  - imageSize.y/2.0f, pos.y)); 
+      node2.setPosition(Vector2f(pos.x  - imageSize.y/2.0f, pos.y + imageSize.x));         
       dragRect.setPosition(centerPos);
       quadrant++;
     } else if (quadrant == 1) {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
                          pos.y - (imageSize.y) / 2.0f);
+      node1.setPosition(Vector2f(pos.x, pos.y  - imageSize.y/2.0f)); 
+      node2.setPosition(Vector2f(pos.x  - imageSize.x, pos.y  - imageSize.y/2.0f));
       dragRect.setPosition(centerPos);
       quadrant++;
     } else if (quadrant == 2) {
       Vector2f pos(imageSprite.getPosition());
       Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
                          pos.y - (imageSize.x) / 2.0f);
+      node1.setPosition(Vector2f(pos.x  + imageSize.y/2.0f, pos.y)); 
+      node2.setPosition(Vector2f(pos.x  + imageSize.y/2.0f, pos.y - imageSize.x));
       dragRect.setPosition(centerPos);
       quadrant++;
     }
   }
 
-  void stopDragging() { isDragging = false; }
-  void stopRotating() { isRotating = false; }
+    
+    void stopDragging() { isDragging = false; }
+    void stopRotating() { isRotating = false; }
 
-  virtual void updatePosition(Vector2f mousePosition) {
-    mousepox = mousePosition;
-    if (isDragging) {
-      int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
-      int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
+    void updatePosition(Vector2f mousePosition) {
+        mousepox = mousePosition;
+        if (isDragging) {
+            int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
+            int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
 
-      Vector2f newPosition(grid[row][col].position.x,
-                           grid[row][col].position.y - 3.0f);
+            Vector2f newPosition(grid[row][col].position.x,
+                                 grid[row][col].position.y - 3.0f);
 
-      Vector2f centerPos;
-      if (quadrant == 0) {
-        centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
-                             newPosition.y + (imageSize.y) / 2.0f);
-      } else if (quadrant == 1) {
-        centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
-                             newPosition.y + (imageSize.x) / 2.0f);
-      } else if (quadrant == 2) {
-        centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
-                             newPosition.y - (imageSize.y) / 2.0f);
+            Vector2f centerPos;
+            if (quadrant == 0) {
+                centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
+                                     newPosition.y + (imageSize.y) / 2.0f);
+                node1.setPosition(Vector2f(newPosition.x , newPosition.y + imageSize.y / 2.0f));
+                node2.setPosition(Vector2f(newPosition.x +  imageSize.x, newPosition.y + imageSize.y / 2.0f));
+            } else if (quadrant == 1) {
+                centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
+                                     newPosition.y + (imageSize.x) / 2.0f);
+                node1.setPosition(Vector2f(newPosition.x  - imageSize.y/2.0f, newPosition.y)); 
+                 node2.setPosition(Vector2f(newPosition.x  - imageSize.y/2.0f, newPosition.y + imageSize.x)); 
+            } else if (quadrant == 2) {
+                centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
+                                     newPosition.y - (imageSize.y) / 2.0f);
+                node1.setPosition(Vector2f(newPosition.x, newPosition.y  - imageSize.y/2.0f)); 
+                node2.setPosition(Vector2f(newPosition.x  - imageSize.x, newPosition.y  - imageSize.y/2.0f));
 
-      } else if (quadrant == 3) {
-        centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
-                             newPosition.y - (imageSize.x) / 2.0f);
-      }
-      imageSprite.setPosition(newPosition);
-      node1.setPosition(Vector2f(centerPos.x + space, centerPos.y - 10));
-      node2.setPosition(Vector2f(centerPos.x - space, centerPos.y - 5));
+            } else if (quadrant == 3) {
+                centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
+                                     newPosition.y - (imageSize.x) / 2.0f);
+                 node1.setPosition(Vector2f(newPosition.x  + imageSize.y/2.0f, newPosition.y)); 
+                  node2.setPosition(Vector2f(newPosition.x  + imageSize.y/2.0f, newPosition.y - imageSize.x));
+            }
+            imageSprite.setPosition(newPosition);
+           
+            dragRect.setPosition(centerPos);
+          }
+        }
 
-      dragRect.setPosition(centerPos);
-    }
-  }
 
   void updateRotation() {}
 
@@ -933,36 +956,34 @@ int main() {
       }
     }
 
-    // Ensure we get the mouse position relative to the window
-    ImVec2 mousePos = ImGui::GetMousePos();
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !menu.isItemPlaced()) {
-      string selectedComponent = menu.getSelectedComponentName();
-      ImTextureID textureID = menu.getSelectedTextureID();
 
-      if (!selectedComponent.empty() && textureID) {
-        auto component =
-            menu.createComponent(selectedComponent, mousePos, 45.0f);
-        if (component) {
-          auto elementRender = dynamic_cast<DraggableElement*>(component);
-          if (elementRender) {
-            components.push_back(unique_ptr<DraggableElement>(elementRender));
-            menu.setItemPlaced(true);
+
+        // Ensure we get the mouse position relative to the window
+        ImVec2 mousePos = ImGui::GetMousePos();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !menu.isItemPlaced()) {
+            string selectedComponent = menu.getSelectedComponentName();
+            ImTextureID textureID = menu.getSelectedTextureID();
+
+            if (!selectedComponent.empty() && textureID) {
+                auto component = menu.createComponent(selectedComponent, mousePos, 45.0f);
+                if (component) {
+                    auto elementRender = dynamic_cast<DraggableElement*>(component);
+                    if (elementRender) {
+                        components.push_back(unique_ptr<DraggableElement>(elementRender));
+                        menu.setItemPlaced(true);
+                    }
+                }
+            }
+        }
+        Vector2f mousePosition = window.mapPixelToCoords(Mouse::getPosition(window));
+        for (auto& component : components) {
+          if (component->variableBox.getGlobalBounds().contains(mousePosition) && Mouse::isButtonPressed(Mouse::Left)&& !component->isDragging) {
+            component->showInputBox = true; 
+          }
+          if (component->showInputBox) {
+            component->handleInputBox();
           }
         }
-      }
-    }
-    Vector2f mousePosition =
-        window.mapPixelToCoords(Mouse::getPosition(window));
-    for (auto& component : components) {
-      if (component->variableBox.getGlobalBounds().contains(mousePosition) &&
-          Mouse::isButtonPressed(Mouse::Left) && !component->isDragging) {
-        component->showInputBox = true;
-      }
-      if (component->showInputBox) {
-        component->handleInputBox();
-      }
-    }
-
     ImGui::EndChild();
     ImGui::End();
     ImGui::SFML::Render(window);
