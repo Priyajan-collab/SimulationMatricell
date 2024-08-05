@@ -295,10 +295,10 @@ class ANDGATE : public DraggableElement, public Component {
     node1.setRadius(0);
     node2.setRadius(0);
     input1.setPosition(
-        Vector2f(node2.getPosition().x - 10, node2.getPosition().y - 25));
+        Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
     input2.setPosition(
-        Vector2f(node2.getPosition().x - 10, node2.getPosition().y + 20));
-    output.setPosition(Vector2f(node1.getPosition().x, node1.getPosition().y));
+        Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
+    output.setPosition(Vector2f(node2.getPosition().x, node2.getPosition().y));
     // circle.setFillColor(Color::White);
 
     label = "ANDGATE", cout << "ANDGATE is made" << endl;
