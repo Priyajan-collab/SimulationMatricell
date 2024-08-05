@@ -8,7 +8,7 @@
 #include <memory>
 #include <sstream>
 
-#include "../include/grid/grid.hpp"
+#include "customlib/grid/grid.hpp"
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -758,7 +758,7 @@ int main() {
 
   vector<Line> lines;
 
-  if (!DraggableElement::font.loadFromFile("textures/notosans.ttf")) {
+  if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
     throw runtime_error("Failed to load font");
   }
 
@@ -932,6 +932,20 @@ int main() {
     // }
     if (ImGui::Button("Draw Line")) {
       lineOn = !lineOn;
+    }
+    if(ImGui::Button("Calculate")){
+      float totalResistance=0.0f,totalVoltage=0.0f;
+      for(auto& component: components){
+        Resistor* resistorPtr = dynamic_cast<Resistor*>(component.get());
+        Battery* batteryPtr = dynamic_cast<Battery*>(component.get());
+        if(resistorPtr){
+          totalResistance += resistorPtr->getResistance();
+        }
+        if(batteryPtr){
+          totalVoltage += batteryPtr->getVoltage();
+        }
+      }
+      cout<<"Total Current Flowing: "<<totalVoltage/totalResistance<<endl;
     }
     ImGui::EndChild();
 
