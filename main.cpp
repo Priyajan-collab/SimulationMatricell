@@ -8,7 +8,7 @@
 #include <memory>
 #include <sstream>
 
-#include "../customlib/grid/grid.hpp"
+#include "../include/grid/grid.hpp"
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -246,6 +246,7 @@ public:
           }
         }
 
+
   void updateRotation() {}
 
   int connectedA(int a) {
@@ -276,6 +277,140 @@ class Component {
   virtual ~Component() {}
   // virtual static const string& getImagePath() const = 0;
 };
+class ANDGATE : public DraggableElement, public Component {
+ public:
+  static const string image;
+  CircleShape input1, input2, output;
+  bool i0 = false, i1 = false;
+
+  ANDGATE(ImVec2 pos, float initialVar = 45.0f)
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
+    // circle.setPosition(
+    //     Vector2f(node1.getPosition().x - 60, node1.getPosition().y - 3));
+    // circle.setRadius(2);
+    input1.setRadius(radius);
+    input2.setRadius(radius);
+    output.setRadius(radius);
+    input1.setFillColor(Color::Yellow);
+    input2.setFillColor(Color::Yellow);
+    output.setFillColor(Color::Yellow);
+
+    node1.setRadius(0);
+    node2.setRadius(0);
+    input1.setPosition(
+        Vector2f(node2.getPosition().x - 10, node2.getPosition().y - 25));
+    input2.setPosition(
+        Vector2f(node2.getPosition().x - 10, node2.getPosition().y + 20));
+    output.setPosition(Vector2f(node1.getPosition().x, node1.getPosition().y));
+    // circle.setFillColor(Color::White);
+
+    label = "ANDGATE", cout << "ANDGATE is made" << endl;
+  };
+  virtual void andlogic() {
+    if (!i0) {
+      input1.setFillColor(Color::Yellow);
+    } else {
+      input1.setFillColor(Color::Red);
+    }
+    if (!i1) {
+      input2.setFillColor(Color::Yellow);
+    } else {
+      input2.setFillColor(Color::Red);
+    }
+    if (!i0 || !i1) {
+      output.setFillColor(Color::Yellow);
+    } else {
+      output.setFillColor(Color::Red);
+    }
+  }
+  static const string& getImagePath() { return image; }
+  bool containsInput1(Vector2f mousePosition) const {
+    return input1.getGlobalBounds().contains(mousePosition);
+  }
+  bool containsInput2(Vector2f mousePosition) const {
+    return input2.getGlobalBounds().contains(mousePosition);
+  }
+
+  void draw(RenderWindow& window) {
+    window.draw(imageSprite);
+    window.draw(node1);
+    window.draw(node2);
+    window.draw(dragRect);
+    window.draw(input1);
+    window.draw(input2);
+    window.draw(output);
+    id++;
+  }
+};
+const string ANDGATE::image = "textures/ANDGATE.png";
+
+class ORGATE : public DraggableElement, public Component {
+ public:
+  static const string image;
+  CircleShape input1, input2, output;
+  bool i0 = false, i1 = false;
+
+  ORGATE(ImVec2 pos, float initialVar = 45.0f)
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image) {
+    // circle.setPosition(
+    //     Vector2f(node1.getPosition().x - 60, node1.getPosition().y - 3));
+    // circle.setRadius(2);
+    input1.setRadius(radius);
+    input2.setRadius(radius);
+    output.setRadius(radius);
+    input1.setFillColor(Color::Yellow);
+    input2.setFillColor(Color::Yellow);
+    output.setFillColor(Color::Yellow);
+
+    node1.setRadius(0);
+    node2.setRadius(0);
+    input1.setPosition(
+        Vector2f(node2.getPosition().x - 10, node2.getPosition().y - 25));
+    input2.setPosition(
+        Vector2f(node2.getPosition().x - 10, node2.getPosition().y + 20));
+    output.setPosition(Vector2f(node1.getPosition().x, node1.getPosition().y));
+    // circle.setFillColor(Color::White);
+
+    label = "ORGATE";
+    cout << "ORGATE is made" << endl;
+  };
+  void orlogic() {
+    if (!i0) {
+      input1.setFillColor(Color::Yellow);
+    } else {
+      input1.setFillColor(Color::Red);
+    }
+    if (!i1) {
+      input2.setFillColor(Color::Yellow);
+    } else {
+      input2.setFillColor(Color::Red);
+    }
+    if (!i0 || !i1) {
+      output.setFillColor(Color::Yellow);
+    } else {
+      output.setFillColor(Color::Red);
+    }
+  }
+  static const string& getImagePath() { return image; }
+  bool containsInput1(Vector2f mousePosition) const {
+    return input1.getGlobalBounds().contains(mousePosition);
+  }
+  bool containsInput2(Vector2f mousePosition) const {
+    return input2.getGlobalBounds().contains(mousePosition);
+  }
+
+  void draw(RenderWindow& window) {
+    window.draw(imageSprite);
+    window.draw(node1);
+    window.draw(node2);
+    window.draw(dragRect);
+    window.draw(input1);
+    window.draw(input2);
+    window.draw(output);
+    id++;
+  }
+};
+const string ORGATE::image = "textures/ball.png";
 
 class Resistor : public Component, public DraggableElement {
   static const string image;
@@ -485,14 +620,14 @@ class MenuList {
   vector<Texture> textures;
   vector<ImTextureID> textureIDs;
   int selectedItem;  // Track selected item index
-  string components[7];
+  string components[9];
   bool itemPlaced;
 
  public:
   MenuList()
       : selectedItem(-1),
-        components{"Resistor",  "Battery", "Inductor",  "Bulb",
-                   "Capacitor", "Diode",   "Transistor"} {
+        components{"Resistor", "Battery",   "Inductor", "Bulb",      "ANDGATE",
+                   "ORGATE",   "Capacitor", "Diode",    "Transistor"} {
     // Initialize textures and textureIDs here if necessary
   }
 
@@ -544,6 +679,10 @@ class MenuList {
       return new Inductor(pos, initialVar);
     } else if (type == "Bulb") {
       return new Bulb(pos, initialVar);
+    } else if (type == "ANDGATE") {
+      return new ANDGATE(pos, initialVar);
+    } else if (type == "ANDGATE") {
+      return new ORGATE(pos, initialVar);
     }
 
     // Add more cases as needed
@@ -619,7 +758,7 @@ int main() {
 
   vector<Line> lines;
 
-  if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
+  if (!DraggableElement::font.loadFromFile("textures/notosans.ttf")) {
     throw runtime_error("Failed to load font");
   }
 
@@ -636,8 +775,12 @@ int main() {
   // Dynamically load textures from component classes
   vector<Texture> textures;
   vector<string> imagePaths = {
-      Resistor::getImagePath(), Battery::getImagePath(),
-      Inductor::getImagePath(), Bulb::getImagePath()
+      Resistor::getImagePath(),
+      Battery::getImagePath(),
+      Inductor::getImagePath(),
+      Bulb::getImagePath(),
+      ANDGATE::getImagePath(),
+      ORGATE::getImagePath()
       // Add other component paths as needed
   };
 
@@ -680,6 +823,18 @@ int main() {
 
               if (Mouse::isButtonPressed(Mouse::Right)) {
                 component->startRotating(mousePosition);
+              }
+            }
+            ANDGATE* ptrand = dynamic_cast<ANDGATE*>(component.get());
+            if (ptrand) {
+              if (ptrand->containsInput1(mousePosition)) {
+                ptrand->i0 = !ptrand->i0;
+                ptrand->andlogic();
+                cout << ptrand->i0;
+              }
+              if (ptrand->containsInput2(mousePosition)) {
+                ptrand->i1 = !ptrand->i1;
+                ptrand->andlogic();
               }
             }
             // line yeta bata connect hunxa
