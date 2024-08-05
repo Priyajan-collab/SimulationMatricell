@@ -291,6 +291,7 @@ class Bulb : public Component, public DraggableElement {
 
     label = "bulb", cout << "Bulb is made" << endl;
   };
+
   void TurnOn(bool toggle) {
     if (toggle) {
       circle.setFillColor(Color::Red);
