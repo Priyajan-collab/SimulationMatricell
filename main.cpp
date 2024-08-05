@@ -8,7 +8,7 @@
 #include <memory>
 #include <sstream>
 
-#include "../customlib/grid/grid.hpp"
+#include "../include/grid/grid.hpp"
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -45,7 +45,6 @@ class DraggableElement {
   Vector2f dragOffset;
   float rotateOffset;
 
-
   Vector2f imageSize;
   Vector2f rectSize;
   float radius = 5;
@@ -76,10 +75,8 @@ class DraggableElement {
   RectangleShape variableBox;
   Text variableText;
 
-  DraggableElement(const Vector2f& position,Vector2f imgSize,  string imagePath)
-        : isDragging(false),
-          imageSize(imgSize),
-          rectSize(Vector2f(45, 15)) {
+  DraggableElement(const Vector2f& position, Vector2f imgSize, string imagePath)
+      : isDragging(false), imageSize(imgSize), rectSize(Vector2f(45, 15)) {
     // Load the image texture
     number_of_obj++;
     if (!imageTexture.loadFromFile(imagePath)) {
@@ -259,8 +256,14 @@ class DraggableElement {
 
   void updateRotation() {}
 
-  int connectedA(int a) { on = a; }
-  void connectedB(bool b) { onagain = b; }
+  void connectedA(bool a) {
+    if (a) {
+      on = true;
+    } else {
+      on = false;
+    }
+  }
+
   virtual void TurnOn(bool) {};
 };
 
@@ -281,8 +284,8 @@ class ANDGATE : public DraggableElement, public Component {
   CircleShape input1, input2, output;
   bool i0 = false, i1 = false;
 
-  ANDGATE(ImVec2 pos,Vector2f imgSize, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize,  image) {
+  ANDGATE(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), imgSize, image) {
     // circle.setPosition(
     //     Vector2f(node1.getPosition().x - 60, node1.getPosition().y - 3));
     // circle.setRadius(2);
@@ -466,7 +469,8 @@ class ORGATE : public ANDGATE {
   static const string image;
 
   string label = "ORGATE";
-  ORGATE(ImVec2 pos, Vector2f imgSize, float intialVar) : ANDGATE(pos,imgSize, intialVar) {};
+  ORGATE(ImVec2 pos, Vector2f imgSize, float intialVar)
+      : ANDGATE(pos, imgSize, intialVar) {};
 
   virtual void logic() {
     if (!i0) {
@@ -494,15 +498,14 @@ class Resistor : public Component, public DraggableElement {
   float voltage;
 
  public:
-
   static int countResistor;
   int id_resistor = countResistor;
-   Resistor(ImVec2 pos, Vector2f imgSize,float initialVar = 45.0f)
+  Resistor(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
       : Component(),
-        DraggableElement(Vector2f(pos.x, pos.y),imgSize, image),
+        DraggableElement(Vector2f(pos.x, pos.y), imgSize, image),
         resistance(initialVar) {
     countResistor++;
-        }
+  }
 
   static const string& getImagePath() { return image; }
 
@@ -559,14 +562,13 @@ class Battery : public Component, public DraggableElement {
 
   Battery(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
       : Component(),
-        DraggableElement(Vector2f(pos.x, pos.y),imgSize,  image),
+        DraggableElement(Vector2f(pos.x, pos.y), imgSize, image),
         voltage(initialVar) {
     cout << "Battery is made" << endl;
   }
 
   static const string& getImagePath() { return image; }
-  void TurnOn() {
-    cout << "hey" << endl;
+  void TurnOn(bool toggle) {
     node1.setFillColor(Color::Black);
     node2.setFillColor(Color::Black);
   }
@@ -619,7 +621,7 @@ class Inductor : public Component, public DraggableElement {
 
   Inductor(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
       : Component(),
-        DraggableElement(Vector2f(pos.x, pos.y),imgSize,  image),
+        DraggableElement(Vector2f(pos.x, pos.y), imgSize, image),
         inductance(initialVar) {
     cout << "Inductor is made" << endl;
   }
@@ -669,13 +671,16 @@ class Bulb : public Component, public DraggableElement {
  public:
   static const string image;
   CircleShape circle;
+  bool toggle;
 
   Bulb(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize,  image) {
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), imgSize, image) {
     circle.setPosition(
         Vector2f(node1.getPosition().x - 55, node1.getPosition().y - 3));
     circle.setRadius(radius);
+    circle.setFillColor(Color::Black);
     // circle.setFillColor(Color::White);
+    // cout << circle.getPosition().x << "," << circle.getPosition().y << endl;
 
     label = "bulb", cout << "Bulb is made" << endl;
   };
@@ -684,7 +689,7 @@ class Bulb : public Component, public DraggableElement {
   void TurnOn(bool toggle) {
     if (toggle) {
       circle.setFillColor(Color::Red);
-      cout << "bulb is on" << endl;
+
     } else {
       circle.setFillColor(Color::Black);
     }
@@ -703,16 +708,16 @@ class Bulb : public Component, public DraggableElement {
 const string Bulb::image = "textures/bulb.png";
 
 class Multimeter : public Component, public DraggableElement {
-  public:
+ public:
   static const string image;
   RectangleShape inputBox;
 
   Multimeter(ImVec2 pos, Vector2f imgSize)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize, image) {
-        inputBox.setSize(Vector2f(180,50));
-        inputBox.setPosition(Vector2f(imageSprite.getPosition()));
-        inputBox.setFillColor(Color::Red);
-      };
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y), imgSize, image) {
+    inputBox.setSize(Vector2f(180, 50));
+    inputBox.setPosition(Vector2f(imageSprite.getPosition()));
+    inputBox.setFillColor(Color::Red);
+  };
   static const string& getImagePath() { return image; }
 
   void draw(RenderWindow& window) {
@@ -722,25 +727,25 @@ class Multimeter : public Component, public DraggableElement {
     id++;
   }
 
-   void updatePosition(Vector2f mousePosition) {
-        mousepox = mousePosition;
-        if (isDragging) {
-            int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
-            int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
+  void updatePosition(Vector2f mousePosition) {
+    mousepox = mousePosition;
+    if (isDragging) {
+      int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
+      int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
 
-            // Vector2f newPosition(grid[row][col].position.x,
-            //                      grid[row][col].position.y - 3.0f);
-            Vector2f newPosition(grid[row][col].position.x,
-                                 grid[row][col].position.y );
+      // Vector2f newPosition(grid[row][col].position.x,
+      //                      grid[row][col].position.y - 3.0f);
+      Vector2f newPosition(grid[row][col].position.x,
+                           grid[row][col].position.y);
 
-            Vector2f centerPos;
-            centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
-                                     newPosition.y + (imageSize.y) / 2.0f);
-            imageSprite.setPosition(newPosition);
-            inputBox.setPosition(imageSprite.getPosition());
-            dragRect.setPosition(centerPos);
-          }
-        }
+      Vector2f centerPos;
+      centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
+                           newPosition.y + (imageSize.y) / 2.0f);
+      imageSprite.setPosition(newPosition);
+      inputBox.setPosition(imageSprite.getPosition());
+      dragRect.setPosition(centerPos);
+    }
+  }
 };
 
 const string Multimeter::image = "textures/multimeter.png";
@@ -756,8 +761,8 @@ class MenuList {
  public:
   MenuList()
       : selectedItem(-1),
-        components{"Resistor", "Battery",   "Inductor", "Bulb", "Multimeter","ANDGATE",
-                   "ORGATE",   "Capacitor", "Diode",    "Transistor"} {
+        components{"Resistor", "Battery", "Inductor",  "Bulb",  "Multimeter",
+                   "ANDGATE",  "ORGATE",  "Capacitor", "Diode", "Transistor"} {
     // Initialize textures and textureIDs here if necessary
   }
   void setTextures(const vector<Texture>& texs) {
@@ -767,45 +772,43 @@ class MenuList {
       textureIDs.push_back(reinterpret_cast<void*>(texture.getNativeHandle()));
     }
   }
-void drawMenu() {
+  void drawMenu() {
     ImGui::NewLine();
     ImGui::BeginChild("MenuList", ImVec2(0, 400), true);
     // Define categories for clarity and easier maintenance
     bool printedElectronicDevicesHeader = false;
     bool printedLogicGatesHeader = false;
-    
-    for (size_t i = 0; i < 10; ++i) {
-        // Correct string comparison
-        if (components[i] == "Resistor" && !printedElectronicDevicesHeader) {
-            
-            ImGui::Text("Electronic Devices: ");
-            ImGui::NewLine();
-            printedElectronicDevicesHeader = true;
-        }
-        else if (components[i] == "ANDGATE" && !printedLogicGatesHeader) {
-            ImGui::NewLine();
-            ImGui::NewLine();
-            ImGui::Text("Logic Gates: ");
-            ImGui::NewLine();
-            printedLogicGatesHeader = true;
-        }
-        
-        // Create buttons
-        if (ImGui::Button(components[i].c_str(), ImVec2(75, 30))) {
-            selectedItem = i;
-            itemPlaced = false;
-            std::cout << "Selected index: " << i << std::endl;
-            std::cout << "Selected: " << components[selectedItem] << std::endl;
-        }
 
-        // Move to the next line after every two buttons
-        if ((i % 2) == 0) {
-            ImGui::SameLine();
-        }
+    for (size_t i = 0; i < 10; ++i) {
+      // Correct string comparison
+      if (components[i] == "Resistor" && !printedElectronicDevicesHeader) {
+        ImGui::Text("Electronic Devices: ");
+        ImGui::NewLine();
+        printedElectronicDevicesHeader = true;
+      } else if (components[i] == "ANDGATE" && !printedLogicGatesHeader) {
+        ImGui::NewLine();
+        ImGui::NewLine();
+        ImGui::Text("Logic Gates: ");
+        ImGui::NewLine();
+        printedLogicGatesHeader = true;
+      }
+
+      // Create buttons
+      if (ImGui::Button(components[i].c_str(), ImVec2(75, 30))) {
+        selectedItem = i;
+        itemPlaced = false;
+        std::cout << "Selected index: " << i << std::endl;
+        std::cout << "Selected: " << components[selectedItem] << std::endl;
+      }
+
+      // Move to the next line after every two buttons
+      if ((i % 2) == 0) {
+        ImGui::SameLine();
+      }
     }
-    
+
     ImGui::EndChild();
-}
+  }
 
   int getSelectedComponent() const { return selectedItem; }
 
@@ -827,21 +830,19 @@ void drawMenu() {
 
   Component* createComponent(const string& type, ImVec2 pos, float initialVar) {
     if (type == "Resistor") {
-      return new Resistor(pos,Vector2f(80, 40), initialVar);
+      return new Resistor(pos, Vector2f(80, 40), initialVar);
     } else if (type == "Battery") {
-      return new Battery(pos,Vector2f(80, 40), initialVar);
+      return new Battery(pos, Vector2f(80, 40), initialVar);
     } else if (type == "Inductor") {
-      return new Inductor(pos,Vector2f(80, 40), initialVar);
+      return new Inductor(pos, Vector2f(80, 40), initialVar);
     } else if (type == "Bulb") {
-      return new Bulb(pos,Vector2f(80, 40), initialVar);
-    }else if (type == "Multimeter") {
-      return new Multimeter(pos,Vector2f(200,250));
-    } 
-    else if (type == "ANDGATE") {
-      return new ANDGATE(pos,Vector2f(80, 40), initialVar);
+      return new Bulb(pos, Vector2f(80, 40), initialVar);
+    } else if (type == "Multimeter") {
+      return new Multimeter(pos, Vector2f(200, 250));
     } else if (type == "ANDGATE") {
-
-      return new ORGATE(pos,Vector2f(80, 40), initialVar);
+      return new ANDGATE(pos, Vector2f(80, 40), initialVar);
+    } else if (type == "ANDGATE") {
+      return new ORGATE(pos, Vector2f(80, 40), initialVar);
     }
 
     // Add more cases as needed
@@ -910,14 +911,14 @@ void connectElements() { cout << "trying to connect" << endl; }
 int main() {
   int batteryNumber = 0;
   bool lineOn = false;
-  bool switchOn = true;
+  bool switchOn = false;
   bool batteryAdd = false;
   bool item = false;
   int selectedItem = -1;
 
   vector<Line> lines;
-
-  if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
+  // DraggableElement::font.loadFromFile("textures/notosans.ttf");
+  if (!DraggableElement::font.loadFromFile("textures/notosans.ttf")) {
     throw runtime_error("Failed to load font");
   }
 
@@ -928,7 +929,8 @@ int main() {
   ImGui::SFML::Init(window);
 
   ImGuiIO& io = ImGui::GetIO();
-  ImFont* customFont = io.Fonts->AddFontFromFileTTF("notosans.ttf", 18.0f);
+  ImFont* customFont =
+      io.Fonts->AddFontFromFileTTF("textures/notosans.ttf", 18.0f);
 
   ImGui::SFML::UpdateFontTexture();
 
@@ -939,12 +941,9 @@ int main() {
   // Dynamically load textures from component classes
   vector<Texture> textures;
   vector<string> imagePaths = {
-      Resistor::getImagePath(),
-      Battery::getImagePath(),
-      Inductor::getImagePath(),
-      Bulb::getImagePath(),
-      Multimeter::getImagePath(),
-      ANDGATE::getImagePath(),
+      Resistor::getImagePath(),   Battery::getImagePath(),
+      Inductor::getImagePath(),   Bulb::getImagePath(),
+      Multimeter::getImagePath(), ANDGATE::getImagePath(),
       ORGATE::getImagePath()
       // Add other component paths as needed
   };
@@ -997,16 +996,12 @@ int main() {
             if (component->containsNode(mousePosition)) {
               cout << "contatins : " << component->id_component << endl;
               connectElements();
+
               lines.push_back(Line(mousePosition, mousePosition));
             }
 
             if (lineOn) {
               lines.push_back(Line(mousePosition, mousePosition));
-              Bulb* ptrbulb = dynamic_cast<Bulb*>(component.get());
-              if (ptrbulb) {
-                ptrbulb->connectedA(true);
-                ptrbulb->connectedB(true);
-              }
             }
           }
         } else if (event.mouseButton.button == Mouse::Right) {
@@ -1078,13 +1073,11 @@ int main() {
     ImGui::Checkbox("Switch", &switchOn);
     if (ImGui::Button("switch")) {
     }
-    // if (switchOn) {
-    //   for (auto& component : components) {
-    //     if (component->on && component->onagain) {
-    //       component->TurnOn();
-    //     }
-    //   }
-    // }
+
+    for (auto& component : components) {
+      component->TurnOn(switchOn);
+      // cout << component->on << endl;
+    }
     if (ImGui::Button("Draw Line")) {
       lineOn = !lineOn;
     }
@@ -1130,15 +1123,15 @@ int main() {
 
     drawGrid(drawList, offset);
     ;
-    for (auto& component : components) {
-      if (component->label == "bulb") {
-        if (switchOn && component->on && component->onagain) {
-          component->TurnOn(true);
-        } else if (!switchOn | !component->on | !component->onagain) {
-          component->TurnOn(false);
-        }
-      }
-    }
+    // for (auto& component : components) {
+    //   if (component->label == "bulb") {
+    //     if (switchOn && component->on && component->onagain) {
+    //       component->TurnOn(true);
+    //     } else if (!switchOn | !component->on | !component->onagain) {
+    //       component->TurnOn(false);
+    //     }
+    //   }
+    // }
 
     // Ensure we get the mouse position relative to the window
     ImVec2 mousePos = ImGui::GetMousePos();
