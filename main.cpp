@@ -8,7 +8,7 @@
 #include <memory>
 #include <sstream>
 
-#include "../customlib/grid/grid.hpp"
+#include "customlib/grid/grid.hpp"
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -706,12 +706,18 @@ class Multimeter : public Component, public DraggableElement {
   public:
   static const string image;
   RectangleShape inputBox;
+  RectangleShape inputBox2;
+  float value;
+  vector<float> voltageDrop;
+  Text volatageText;
 
   Multimeter(ImVec2 pos, Vector2f imgSize)
       : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize, image) {
-        inputBox.setSize(Vector2f(180,50));
-        inputBox.setPosition(Vector2f(imageSprite.getPosition()));
+        inputBox.setSize(Vector2f(152,40));
+        inputBox2.setSize(Vector2f(152,80));
         inputBox.setFillColor(Color::Red);
+        inputBox2.setFillColor(Color::Red);
+
       };
   static const string& getImagePath() { return image; }
 
@@ -719,9 +725,28 @@ class Multimeter : public Component, public DraggableElement {
     window.draw(imageSprite);
     window.draw(dragRect);
     window.draw(inputBox);
+    drawVariableBox(window);
     id++;
   }
+  void drawVariableBox(RenderWindow& window) {
+        ostringstream oss;
+        oss.precision(1);  // Set precision to 1 decimal place
+        oss << fixed << value;
 
+        // Position for the main value box
+        inputBox.setPosition(imageSprite.getPosition().x - 73, imageSprite.getPosition().y - 70);
+        inputBox2.setPosition(imageSprite.getPosition().x - 30, imageSprite.getPosition().y - 30);
+        variableText.setString(oss.str() + " A");  // Use actual variable value
+        variableText.setPosition(inputBox.getPosition().x + 5, inputBox.getPosition().y + 5);
+
+        // Draw the main value box and text
+        window.draw(inputBox);
+        window.draw(inputBox2);
+        window.draw(variableText);
+
+        // Draw voltage drops
+        
+    }
    void updatePosition(Vector2f mousePosition) {
         mousepox = mousePosition;
         if (isDragging) {
@@ -737,10 +762,33 @@ class Multimeter : public Component, public DraggableElement {
             centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
                                      newPosition.y + (imageSize.y) / 2.0f);
             imageSprite.setPosition(newPosition);
-            inputBox.setPosition(imageSprite.getPosition());
+            inputBox.setPosition(imageSprite.getPosition().x - 73,imageSprite.getPosition().y - 70);
+            inputBox2.setPosition(imageSprite.getPosition().x - 30,imageSprite.getPosition().y - 30);
             dragRect.setPosition(centerPos);
           }
         }
+        void setValue(float val) {
+        value = val;
+        }
+
+      void setVoltageDrop(float volDrop, RenderWindow& window) {
+          voltageDrop.emplace_back(volDrop);
+          float yOffset = 0;
+          for (size_t i = 0; i < voltageDrop.size(); ++i) {
+              ostringstream voltageOss;
+              voltageOss.precision(1);  // Set precision to 1 decimal place
+              voltageOss << fixed << voltageDrop[i];
+              cout<<"Nigga:: "<<voltageDrop[i];
+
+              Text voltageText;
+              voltageText.setString(voltageOss.str() + " V");  // Use actual voltage drop value
+              voltageText.setPosition(inputBox2.getPosition().x + 5, inputBox2.getPosition().y + 5 + yOffset);
+              yOffset += 20;  // Adjust spacing between texts
+
+              // Draw each voltage drop
+              window.draw(voltageText);
+          }
+      }
 };
 
 const string Multimeter::image = "textures/multimeter.png";
@@ -1093,10 +1141,10 @@ int main() {
       float voltageDrop;
       vector<float> tVD;
       vector<Resistor> resistors;
+      Multimeter* multi;
       for (auto& component : components) {
         Resistor* resistorPtr = dynamic_cast<Resistor*>(component.get());
         Battery* batteryPtr = dynamic_cast<Battery*>(component.get());
-
         if (batteryPtr) {
           totalVoltage += batteryPtr->getVoltage();
         }
@@ -1105,17 +1153,29 @@ int main() {
           totalResistance += resistorPtr->getResistance();
         }
       }
+       for (auto& component : components) {
+          Multimeter* MultimeterPtr = dynamic_cast<Multimeter*>(component.get());
+
+           if(MultimeterPtr){
+            multi = MultimeterPtr;
+            // cout<<"Hell"<<totalVoltage / totalResistance<<endl;
+            MultimeterPtr->setValue(totalVoltage / totalResistance);
+          }
+       }
       for (auto& resistor : resistors) {
         float voltageDrop =
             resistor.getVolatageDrop(totalResistance, totalVoltage);
+            multi->setVoltageDrop(voltageDrop,window);
         std::cout << "id:" << resistor.id_resistor
                   << "   ::voltage drop::" << voltageDrop
                   << ",,resistor ko resistance" << resistor.getResistance()
                   << std::endl;
       }
       resistors.clear();
+
       cout << "Total Current Flowing: " << totalVoltage / totalResistance
            << endl;
+      
     }
     ImGui::EndChild();
 
