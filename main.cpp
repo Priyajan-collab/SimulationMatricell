@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+
 #include "../customlib/grid/grid.hpp"
 #include "imgui-SFML.h"
 
@@ -39,6 +40,7 @@ void drawGrid(ImDrawList* drawList, const ImVec2& offset) {
 }
 
 class DraggableElement {
+
 protected:
     bool isRotating;
     Vector2f dragOffset;
@@ -134,35 +136,33 @@ public:
         variableText.setFillColor(Color::White);
     }
 
+  virtual void draw(RenderWindow& window) {
+    window.draw(imageSprite);
+    window.draw(node1);
+    window.draw(node2);
+    window.draw(dragRect);
+    // Update and draw the variable box
+    drawVariableBox(window);
+    id++;
+  }
 
-    virtual void draw(RenderWindow& window) {
-        window.draw(imageSprite);
-        window.draw(node1);
-        window.draw(node2);
-        window.draw(dragRect);
-        // Update and draw the variable box
-        drawVariableBox(window);
-        id++;
-    }
+  virtual void handleInputBox() {}
 
-    virtual void handleInputBox() {}
+  virtual void drawVariableBox(RenderWindow& window) {}
 
-    virtual void drawVariableBox(RenderWindow& window) {}
-    
-    bool contains(Vector2f mousePosition) const {
-        return dragRect.getGlobalBounds().contains(mousePosition);
-    }
+  bool contains(Vector2f mousePosition) const {
+    return dragRect.getGlobalBounds().contains(mousePosition);
+  }
 
+  bool containsNode(Vector2f mousePosition) const {
+    return node1.getGlobalBounds().contains(mousePosition) ||
+           node2.getGlobalBounds().contains(mousePosition);
+  }
 
-    bool containsNode(Vector2f mousePosition) const {
-        return node1.getGlobalBounds().contains(mousePosition) ||
-               node2.getGlobalBounds().contains(mousePosition);
-    }
-
-    void startDragging(Vector2f mousePosition) {
-        isDragging = true;
-        dragOffset = imageSprite.getPosition() - mousePosition;
-    }
+  void startDragging(Vector2f mousePosition) {
+    isDragging = true;
+    dragOffset = imageSprite.getPosition() - mousePosition;
+  }
   void startRotating(Vector2f mousePosition) {
     int x = imageSprite.getRotation();
     cout << quadrant << endl;
@@ -203,6 +203,7 @@ public:
       quadrant++;
     }
   }
+
     
     void stopDragging() { isDragging = false; }
     void stopRotating() { isRotating = false; }
@@ -241,28 +242,27 @@ public:
             }
             imageSprite.setPosition(newPosition);
            
-
             dragRect.setPosition(centerPos);
+          }
         }
-    }
 
-    void updateRotation() {}
+  void updateRotation() {}
 
-    int connectedA(int a) {
-        if (a) {
-            on = true;
-        } else {
-            on = false;
-        }
+  int connectedA(int a) {
+    if (a) {
+      on = true;
+    } else {
+      on = false;
     }
-   void connectedB(bool b) {
-      if (b) {
-        onagain = true;
-      } else {
-        onagain = false;
-      }
+  }
+  void connectedB(bool b) {
+    if (b) {
+      onagain = true;
+    } else {
+      onagain = false;
     }
-    virtual void TurnOn(bool) {};
+  }
+  virtual void TurnOn(bool) {};
 };
 
 // Static member definition
@@ -280,59 +280,65 @@ class Component {
 class Resistor : public Component, public DraggableElement {
   static const string image;
   float resistance;
+
  public:
   Resistor(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),resistance(initialVar) {}
+      : Component(),
+        DraggableElement(Vector2f(pos.x, pos.y), image),
+        resistance(initialVar) {}
 
   static const string& getImagePath() { return image; }
 
   void drawVariableBox(RenderWindow& window) {
-        ostringstream oss;
-        oss.precision(1); // Set precision to 1 decimal place
-        oss << fixed << resistance;
+    ostringstream oss;
+    oss.precision(1);  // Set precision to 1 decimal place
+    oss << fixed << resistance;
 
-        // Set the position for the variable box and text
-        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
-        variableBox.setPosition(boxPosition);
+    // Set the position for the variable box and text
+    Vector2f boxPosition =
+        imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
+    variableBox.setPosition(boxPosition);
 
-        // Update text content and position
-        variableText.setString(oss.str() + " Ohm"); // Use actual variable value
-        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+    // Update text content and position
+    variableText.setString(oss.str() + " Ohm");  // Use actual variable value
+    variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
 
-        // Draw box and text
-        window.draw(variableBox);
-        window.draw(variableText);
+    // Draw box and text
+    window.draw(variableBox);
+    window.draw(variableText);
+  }
+  void handleInputBox() {
+    // Set focus to the input box if it's shown
+    if (showInputBox) {
+      ImGui::SetNextWindowFocus();
     }
-    void handleInputBox() {
-      // Set focus to the input box if it's shown
-      if (showInputBox) {
-          ImGui::SetNextWindowFocus();
-      }
-      ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
-      // Begin the ImGui window
-      ImGui::Begin("Set Resistance", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-      // Input field for float values
-      ImGui::InputFloat(" ", &resistance);
-      // Close button
-      if (ImGui::Button("Close")) {
-          showInputBox = false; // Hide the input box
-      }
-      ImGui::End();
+    ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+    // Begin the ImGui window
+    ImGui::Begin("Set Resistance", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    // Input field for float values
+    ImGui::InputFloat(" ", &resistance);
+    // Close button
+    if (ImGui::Button("Close")) {
+      showInputBox = false;  // Hide the input box
     }
-    float getResistance(){
-      return resistance;
-    }
+    ImGui::End();
+  }
+  float getResistance() { return resistance; }
 };
 
 const string Resistor::image = "textures/ResistorIcon.png";
 
 class Battery : public Component, public DraggableElement {
   float voltage;
+
  public:
   static const string image;
 
   Battery(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),voltage(initialVar) {
+      : Component(),
+        DraggableElement(Vector2f(pos.x, pos.y), image),
+        voltage(initialVar) {
     cout << "Battery is made" << endl;
   }
 
@@ -344,93 +350,96 @@ class Battery : public Component, public DraggableElement {
   }
 
   void drawVariableBox(RenderWindow& window) {
-        ostringstream oss;
-        oss.precision(1); // Set precision to 1 decimal place
-        oss << std::fixed << voltage;
+    ostringstream oss;
+    oss.precision(1);  // Set precision to 1 decimal place
+    oss << std::fixed << voltage;
 
-        // Set the position for the variable box and text
-        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
-        variableBox.setPosition(boxPosition);
+    // Set the position for the variable box and text
+    Vector2f boxPosition =
+        imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
+    variableBox.setPosition(boxPosition);
 
-        // Update text content and position
-        variableText.setString(oss.str() + " V"); // Use actual variable value
-        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+    // Update text content and position
+    variableText.setString(oss.str() + " V");  // Use actual variable value
+    variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
 
-        // Draw box and text
-        window.draw(variableBox);
-        window.draw(variableText);
+    // Draw box and text
+    window.draw(variableBox);
+    window.draw(variableText);
+  }
+  void handleInputBox() {
+    // Set focus to the input box if it's shown
+    if (showInputBox) {
+      ImGui::SetNextWindowFocus();
     }
-    void handleInputBox() {
-      // Set focus to the input box if it's shown
-      if (showInputBox) {
-          ImGui::SetNextWindowFocus();
-      }
-      ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
-      // Begin the ImGui window
-      ImGui::Begin("Set Voltage", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-      // Input field for float values
-      ImGui::InputFloat(" ", &voltage);
-      // Close button
-      if (ImGui::Button("Close")) {
-          showInputBox = false; // Hide the input box
-      }
-      ImGui::End();
+    ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+    // Begin the ImGui window
+    ImGui::Begin("Set Voltage", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    // Input field for float values
+    ImGui::InputFloat(" ", &voltage);
+    // Close button
+    if (ImGui::Button("Close")) {
+      showInputBox = false;  // Hide the input box
     }
-    float getVoltage(){
-      return voltage;
-    }
+    ImGui::End();
+  }
+  float getVoltage() { return voltage; }
 };
 
 const string Battery::image = "textures/BatteryIcon.png";
 
 class Inductor : public Component, public DraggableElement {
   float inductance;
+
  public:
   static const string image;
 
   Inductor(ImVec2 pos, float initialVar = 45.0f)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), image),inductance(initialVar) {
+      : Component(),
+        DraggableElement(Vector2f(pos.x, pos.y), image),
+        inductance(initialVar) {
     cout << "Inductor is made" << endl;
   }
 
   static const string& getImagePath() { return image; }
 
   void drawVariableBox(RenderWindow& window) {
-        ostringstream oss;
-        oss.precision(1); // Set precision to 1 decimal place
-        oss << std::fixed << inductance;
+    ostringstream oss;
+    oss.precision(1);  // Set precision to 1 decimal place
+    oss << std::fixed << inductance;
 
-        // Set the position for the variable box and text
-        Vector2f boxPosition = imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
-        variableBox.setPosition(boxPosition);
+    // Set the position for the variable box and text
+    Vector2f boxPosition =
+        imageSprite.getPosition() + Vector2f(10, imageSize.y / 2 + 10);
+    variableBox.setPosition(boxPosition);
 
-        // Update text content and position
-        variableText.setString(oss.str() + " H"); // Use actual variable value
-        variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
+    // Update text content and position
+    variableText.setString(oss.str() + " H");  // Use actual variable value
+    variableText.setPosition(boxPosition.x + 5, boxPosition.y + 5);
 
-        // Draw box and text
-        window.draw(variableBox);
-        window.draw(variableText);
+    // Draw box and text
+    window.draw(variableBox);
+    window.draw(variableText);
+  }
+  void handleInputBox() {
+    // Set focus to the input box if it's shown
+    if (showInputBox) {
+      ImGui::SetNextWindowFocus();
     }
-    void handleInputBox() {
-      // Set focus to the input box if it's shown
-      if (showInputBox) {
-          ImGui::SetNextWindowFocus();
-      }
-      ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
-      // Begin the ImGui window
-      ImGui::Begin("Set Inductance", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-      // Input field for float values
-      ImGui::InputFloat(" ", &inductance);
-      // Close button
-      if (ImGui::Button("Close")) {
-          showInputBox = false; // Hide the input box
-      }
-      ImGui::End();
+    ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+    // Begin the ImGui window
+    ImGui::Begin("Set Inductance", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    // Input field for float values
+    ImGui::InputFloat(" ", &inductance);
+    // Close button
+    if (ImGui::Button("Close")) {
+      showInputBox = false;  // Hide the input box
     }
-    float getInductance(){
-      return inductance;
-    }
+    ImGui::End();
+  }
+  float getInductance() { return inductance; }
 };
 const string Inductor::image = "textures/InductorIcon.png";
 
@@ -450,7 +459,6 @@ class Bulb : public Component, public DraggableElement {
   };
   static const string& getImagePath() { return image; }
 
-
   void TurnOn(bool toggle) {
     if (toggle) {
       circle.setFillColor(Color::Red);
@@ -460,9 +468,7 @@ class Bulb : public Component, public DraggableElement {
     }
   }
 
-   void draw(RenderWindow& window) {
-
-
+  void draw(RenderWindow& window) {
     window.draw(imageSprite);
     window.draw(node1);
     window.draw(node2);
@@ -487,7 +493,6 @@ class MenuList {
       : selectedItem(-1),
         components{"Resistor",  "Battery", "Inductor",  "Bulb",
                    "Capacitor", "Diode",   "Transistor"} {
-
     // Initialize textures and textureIDs here if necessary
   }
 
@@ -540,7 +545,7 @@ class MenuList {
     } else if (type == "Bulb") {
       return new Bulb(pos, initialVar);
     }
-    
+
     // Add more cases as needed
     return nullptr;
   }
@@ -605,37 +610,36 @@ class connection {
 void connectElements() { cout << "trying to connect" << endl; }
 
 int main() {
-    int batteryNumber = 0;
-    bool lineOn = false;
-    bool switchOn = true;
-    bool batteryAdd = false;
-    bool item = false;
-    int selectedItem = -1;
+  int batteryNumber = 0;
+  bool lineOn = false;
+  bool switchOn = true;
+  bool batteryAdd = false;
+  bool item = false;
+  int selectedItem = -1;
 
-    vector<Line> lines;
+  vector<Line> lines;
 
-    if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
-        throw runtime_error("Failed to load font");
-    }
+  if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
+    throw runtime_error("Failed to load font");
+  }
 
-    RenderWindow window(VideoMode(1366, 768), "Simulation",
-                        Style::Close | Style::Resize);
-    initializeGrid(numRows, cellSize, numCols, grid);
+  RenderWindow window(VideoMode(1366, 768), "Simulation",
+                      Style::Close | Style::Resize);
+  initializeGrid(numRows, cellSize, numCols, grid);
 
-    ImGui::SFML::Init(window);
+  ImGui::SFML::Init(window);
 
-    Clock deltaClock;
+  Clock deltaClock;
 
-    MenuList menu;
+  MenuList menu;
 
-
-    // Dynamically load textures from component classes
-    vector<Texture> textures;
-    vector<string> imagePaths = {
-        Resistor::getImagePath(), Battery::getImagePath(),
-        Inductor::getImagePath(), Bulb::getImagePath()
-        // Add other component paths as needed
-    };
+  // Dynamically load textures from component classes
+  vector<Texture> textures;
+  vector<string> imagePaths = {
+      Resistor::getImagePath(), Battery::getImagePath(),
+      Inductor::getImagePath(), Bulb::getImagePath()
+      // Add other component paths as needed
+  };
 
   for (const auto& path : imagePaths) {
     Texture texture;
@@ -650,147 +654,153 @@ int main() {
   // vector<unique_ptr<ElementRender>> elementRenders;
   vector<unique_ptr<DraggableElement>> components;
 
-//     for (const auto& path : imagePaths) {
-//         Texture texture;
-//         if (texture.loadFromFile(path)) {
-//             textures.push_back(texture);
-//         } else {
-//             cout << "Error in loading image: " << path << endl;
-//         }
-    while (window.isOpen()) {
-        Event event;
-        while (window.pollEvent(event)) {
-          ImGui::SFML::ProcessEvent(event);
+  //     for (const auto& path : imagePaths) {
+  //         Texture texture;
+  //         if (texture.loadFromFile(path)) {
+  //             textures.push_back(texture);
+  //         } else {
+  //             cout << "Error in loading image: " << path << endl;
+  //         }
+  while (window.isOpen()) {
+    Event event;
+    while (window.pollEvent(event)) {
+      ImGui::SFML::ProcessEvent(event);
 
-          if (event.type == Event::Closed) {
-            window.close();
-          }
+      if (event.type == Event::Closed) {
+        window.close();
+      }
 
-          else if (event.type == Event::MouseButtonPressed) {
-            if (event.mouseButton.button == Mouse::Left) {
-              Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+      else if (event.type == Event::MouseButtonPressed) {
+        if (event.mouseButton.button == Mouse::Left) {
+          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
 
-              for (auto& component : components) {
-                if (component->contains(mousePosition)) {
-                  component->startDragging(mousePosition);
-
-                  if (Mouse::isButtonPressed(Mouse::Right)) {
-                    component->startRotating(mousePosition);
-                  }
-                }
-                // line yeta bata connect hunxa
-                if (component->containsNode(mousePosition)) {
-                  cout << "contatins : " << component->id_component << endl;
-                  connectElements();
-                  lines.push_back(Line(mousePosition, mousePosition));
-                }
-              }
-
-              if (lineOn) {
-                lines.push_back(Line(mousePosition, mousePosition));
-              }
-            } else if (event.mouseButton.button == Mouse::Right) {
-              Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
-              for (auto& component : components) {
-                if (component->contains(mousePosition)) {
-                  if (Mouse::isButtonPressed(Mouse::Right)) {
-                    component->startRotating(mousePosition);
-                  }
-                }
-              }
-            }
-          } else if (event.type == Event::MouseButtonReleased) {
-            if (event.mouseButton.button == Mouse::Left) {
-              Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
-              for (auto& component : components) {
-                component->stopDragging();
-                // line yeta ayera end hunxa
-                if (component->containsNode(mousePosition)) {
-                  lines.back().points[1].position =
-                      Vector2f(event.mouseButton.x, event.mouseButton.y);
-                  complete = !complete;
-                }
-              }
-              // Bulb.stopDragging();
-
-              if (lineOn) {
-                lines.back().points[1].position =
-                    Vector2f(event.mouseButton.x, event.mouseButton.y);
-              }
-            }
-          }
-        }
-        if (complete) {
           for (auto& component : components) {
-            if (component->label == "bulb") {
-              component->connectedA(true);
-              component->connectedB(true);
+            if (component->contains(mousePosition)) {
+              component->startDragging(mousePosition);
+
+              if (Mouse::isButtonPressed(Mouse::Right)) {
+                component->startRotating(mousePosition);
+              }
+            }
+            // line yeta bata connect hunxa
+            if (component->containsNode(mousePosition)) {
+              cout << "contatins : " << component->id_component << endl;
+              connectElements();
+              lines.push_back(Line(mousePosition, mousePosition));
             }
           }
-        }
-        if (Mouse::isButtonPressed(Mouse::Left)) {
-          Vector2f mousePos(Mouse::getPosition(window));
+
+          if (lineOn) {
+            lines.push_back(Line(mousePosition, mousePosition));
+          }
+        } else if (event.mouseButton.button == Mouse::Right) {
+          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
           for (auto& component : components) {
-            component->updatePosition(mousePos);
-          }
-
-          if (lineOn && !lines.empty()) {
-            lines.back().points[1].position = mousePos;
-          }
-        }
-
-
-        ImGui::SFML::Update(window, deltaClock.restart());
-        window.clear(Color::Black);
-
-
-        ImVec2 windowSize(window.getSize().x, window.getSize().y);
-        ImGui::SetNextWindowSize(windowSize,ImGuiCond_Always);  // Set ImGui window size to match SFML window size
-        ImGui::SetNextWindowPos(ImVec2(0, 0),ImGuiCond_Always);  // Set ImGui window position to top-left corner
-
-        ImGui::Begin("Main Layout", nullptr,ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |ImGuiWindowFlags_NoMove);
-
-        // Left menu area
-        ImGui::BeginChild("Menu", ImVec2(200, 0), true, ImGuiWindowFlags_NoResize);  // Fixed width for the menu
-        ImGui::Text("Menu");
-
-        menu.drawMenu();
-
-        ImGui::Checkbox("Switch", &switchOn);
-        if (ImGui::Button("switch")) {
-        }
-        // if (switchOn) {
-        //   for (auto& component : components) {
-        //     if (component->on && component->onagain) {
-        //       component->TurnOn();
-        //     }
-        //   }
-        // }
-        if (ImGui::Button("Draw Line")) {
-          lineOn = !lineOn;
-        }
-        ImGui::EndChild();
-
-        ImGui::SameLine();
-
-        // Right content area with grid rendering
-        ImGui::BeginChild("Content", ImVec2(0, 0), true, ImGuiWindowFlags_NoResize);
-
-        // Draw the grid inside the ImGui child window
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
-        ImVec2 offset = ImGui::GetCursorScreenPos();
-
-        drawGrid(drawList, offset);
-;
-        for (auto& component : components) {
-          if (component->label == "bulb") {
-            if (switchOn && component->on && component->onagain) {
-              component->TurnOn(true);
-            } else if (!switchOn | !component->on | !component->onagain) {
-              component->TurnOn(false);
+            if (component->contains(mousePosition)) {
+              if (Mouse::isButtonPressed(Mouse::Right)) {
+                component->startRotating(mousePosition);
+              }
             }
           }
         }
+      } else if (event.type == Event::MouseButtonReleased) {
+        if (event.mouseButton.button == Mouse::Left) {
+          Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+          for (auto& component : components) {
+            component->stopDragging();
+            // line yeta ayera end hunxa
+            if (component->containsNode(mousePosition)) {
+              lines.back().points[1].position =
+                  Vector2f(event.mouseButton.x, event.mouseButton.y);
+              complete = !complete;
+            }
+          }
+          // Bulb.stopDragging();
+
+          if (lineOn) {
+            lines.back().points[1].position =
+                Vector2f(event.mouseButton.x, event.mouseButton.y);
+          }
+        }
+      }
+    }
+    if (complete) {
+      for (auto& component : components) {
+        if (component->label == "bulb") {
+          component->connectedA(true);
+          component->connectedB(true);
+        }
+      }
+    }
+    if (Mouse::isButtonPressed(Mouse::Left)) {
+      Vector2f mousePos(Mouse::getPosition(window));
+      for (auto& component : components) {
+        component->updatePosition(mousePos);
+      }
+
+      if (lineOn && !lines.empty()) {
+        lines.back().points[1].position = mousePos;
+      }
+    }
+
+    ImGui::SFML::Update(window, deltaClock.restart());
+    window.clear(Color::Black);
+
+    ImVec2 windowSize(window.getSize().x, window.getSize().y);
+    ImGui::SetNextWindowSize(
+        windowSize,
+        ImGuiCond_Always);  // Set ImGui window size to match SFML window size
+    ImGui::SetNextWindowPos(
+        ImVec2(0, 0),
+        ImGuiCond_Always);  // Set ImGui window position to top-left corner
+
+    ImGui::Begin("Main Layout", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoMove);
+
+    // Left menu area
+    ImGui::BeginChild("Menu", ImVec2(200, 0), true,
+                      ImGuiWindowFlags_NoResize);  // Fixed width for the menu
+    ImGui::Text("Menu");
+
+    menu.drawMenu();
+
+    ImGui::Checkbox("Switch", &switchOn);
+    if (ImGui::Button("switch")) {
+    }
+    // if (switchOn) {
+    //   for (auto& component : components) {
+    //     if (component->on && component->onagain) {
+    //       component->TurnOn();
+    //     }
+    //   }
+    // }
+    if (ImGui::Button("Draw Line")) {
+      lineOn = !lineOn;
+    }
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    // Right content area with grid rendering
+    ImGui::BeginChild("Content", ImVec2(0, 0), true, ImGuiWindowFlags_NoResize);
+
+    // Draw the grid inside the ImGui child window
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 offset = ImGui::GetCursorScreenPos();
+
+    drawGrid(drawList, offset);
+    ;
+    for (auto& component : components) {
+      if (component->label == "bulb") {
+        if (switchOn && component->on && component->onagain) {
+          component->TurnOn(true);
+        } else if (!switchOn | !component->on | !component->onagain) {
+          component->TurnOn(false);
+        }
+      }
+    }
+
 
 
         // Ensure we get the mouse position relative to the window
@@ -819,22 +829,21 @@ int main() {
             component->handleInputBox();
           }
         }
+    ImGui::EndChild();
+    ImGui::End();
+    ImGui::SFML::Render(window);
 
-        ImGui::EndChild();
-        ImGui::End();
-        ImGui::SFML::Render(window);
-
-        for (auto& component : components) {
-            component->draw(window);
-        }
-
-        for (auto& line : lines) {
-            window.draw(line.points, 2, Lines);
-        }
-
-        window.display();
+    for (auto& component : components) {
+      component->draw(window);
     }
 
-    ImGui::SFML::Shutdown();
-    return 0;
+    for (auto& line : lines) {
+      window.draw(line.points, 2, Lines);
+    }
+
+    window.display();
+  }
+
+  ImGui::SFML::Shutdown();
+  return 0;
 }
