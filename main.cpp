@@ -8,7 +8,8 @@
 #include <memory>
 #include <sstream>
 
-#include "../include/grid/grid.hpp"
+#include "customlib/grid/grid.hpp"
+
 #include "imgui-SFML.h"
 
 using namespace sf;
@@ -48,7 +49,6 @@ class DraggableElement {
   Vector2f imageSize;
   Vector2f rectSize;
   float radius = 5;
-  float space = 40;
 
   // Static Font Declaration
 
@@ -282,6 +282,7 @@ class ANDGATE : public DraggableElement, public Component {
  public:
   static const string image;
   CircleShape input1, input2, output;
+  bool OR = false;
   bool i0 = false, i1 = false;
 
   ANDGATE(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
@@ -289,39 +290,73 @@ class ANDGATE : public DraggableElement, public Component {
     // circle.setPosition(
     //     Vector2f(node1.getPosition().x - 60, node1.getPosition().y - 3));
     // circle.setRadius(2);
-    input1.setRadius(radius);
-    input2.setRadius(radius);
-    output.setRadius(radius);
-    input1.setFillColor(Color::Yellow);
-    input2.setFillColor(Color::Yellow);
-    output.setFillColor(Color::Yellow);
+    Color offColor(54, 69, 79);
+    
+    dragRect.setSize(Vector2f(50, 60));
+    dragRect.setOrigin(dragRect.getSize().x / 2, dragRect.getSize().y / 2);
+    dragRect.setPosition(imageSprite.getPosition().x + imageSize.x/2.0f - 15 ,imageSprite.getPosition().y + imageSize.y/2.0f - 10);
+    input1.setRadius(10);
+    input2.setRadius(10);
+    output.setRadius(10);
+    input1.setFillColor(offColor);
+    input2.setFillColor(offColor);
+    output.setFillColor(offColor);
 
     node1.setRadius(0);
     node2.setRadius(0);
     input1.setPosition(
-        Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+        Vector2f(node1.getPosition().x - 30, node1.getPosition().y - 48));
     input2.setPosition(
-        Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
-    output.setPosition(Vector2f(node2.getPosition().x, node2.getPosition().y));
+        Vector2f(node1.getPosition().x - 30, node1.getPosition().y + 5));
+    output.setPosition(Vector2f(node2.getPosition().x - 19, node2.getPosition().y - 21));
+    // circle.setFillColor(Color::White);
+
+    label = "ANDGATE", cout << "ANDGATE is made" << endl;
+  };
+  //Constructor for  OR GATE
+  ANDGATE(ImVec2 pos,Vector2f imgSize, string image)
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize,  image) {
+        OR = true;
+    Color offColor(54, 69, 79);
+    
+    dragRect.setSize(Vector2f(50, 60));
+    dragRect.setOrigin(dragRect.getSize().x / 2, dragRect.getSize().y / 2);
+    dragRect.setPosition(imageSprite.getPosition().x + imageSize.x/2.0f - 15 ,imageSprite.getPosition().y + imageSize.y/2.0f - 10);
+    input1.setRadius(10);
+    input2.setRadius(10);
+    output.setRadius(10);
+    input1.setFillColor(offColor);
+    input2.setFillColor(offColor);
+    output.setFillColor(offColor);
+
+    node1.setRadius(0);
+    node2.setRadius(0);
+    input1.setPosition(
+        Vector2f(node1.getPosition().x - 33, node1.getPosition().y - 50));
+    input2.setPosition(
+        Vector2f(node1.getPosition().x - 33, node1.getPosition().y + 3));
+    output.setPosition(Vector2f(node2.getPosition().x - 30, node2.getPosition().y - 23));
     // circle.setFillColor(Color::White);
 
     label = "ANDGATE", cout << "ANDGATE is made" << endl;
   };
   virtual void logic() {
+    Color offColor(54, 69, 79);
+    Color onColor(255, 49, 49);
     if (!i0) {
-      input1.setFillColor(Color::Yellow);
+      input1.setFillColor(offColor);
     } else {
-      input1.setFillColor(Color::Red);
+      input1.setFillColor(onColor);
     }
     if (!i1) {
-      input2.setFillColor(Color::Yellow);
+      input2.setFillColor(offColor);
     } else {
-      input2.setFillColor(Color::Red);
+      input2.setFillColor(onColor);
     }
     if (!i0 || !i1) {
-      output.setFillColor(Color::Yellow);
+      output.setFillColor(offColor);
     } else {
-      output.setFillColor(Color::Red);
+      output.setFillColor(onColor);
     }
   }
   static const string& getImagePath() { return image; }
@@ -340,116 +375,63 @@ class ANDGATE : public DraggableElement, public Component {
       Vector2f newPosition(grid[row][col].position.x,
                            grid[row][col].position.y - 3.0f);
 
-      Vector2f centerPos;
-      if (quadrant == 0) {
-        centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
-                             newPosition.y + (imageSize.y) / 2.0f);
-        node1.setPosition(
+      Vector2f centerPos(newPosition.x + (imageSize.x) / 2.0f- 15,
+                             newPosition.y + (imageSize.y) / 2.0f-10);
+      node1.setPosition(
             Vector2f(newPosition.x, newPosition.y + imageSize.y / 2.0f));
         node2.setPosition(Vector2f(newPosition.x + imageSize.x,
                                    newPosition.y + imageSize.y / 2.0f));
-      } else if (quadrant == 1) {
-        centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f,
-                             newPosition.y + (imageSize.x) / 2.0f);
-        node1.setPosition(
-            Vector2f(newPosition.x - imageSize.y / 2.0f, newPosition.y));
-        node2.setPosition(Vector2f(newPosition.x - imageSize.y / 2.0f,
-                                   newPosition.y + imageSize.x));
-      } else if (quadrant == 2) {
-        centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f,
-                             newPosition.y - (imageSize.y) / 2.0f);
-        node1.setPosition(
-            Vector2f(newPosition.x, newPosition.y - imageSize.y / 2.0f));
-        node2.setPosition(Vector2f(newPosition.x - imageSize.x,
-                                   newPosition.y - imageSize.y / 2.0f));
+      // if (quadrant == 0) {
+      //   centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f- 15,
+      //                        newPosition.y + (imageSize.y) / 2.0f-10);
+      //   node1.setPosition(
+      //       Vector2f(newPosition.x, newPosition.y + imageSize.y / 2.0f));
+      //   node2.setPosition(Vector2f(newPosition.x + imageSize.x,
+      //                              newPosition.y + imageSize.y / 2.0f));
+      // } else if (quadrant == 1) {
+      //   centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f - 15,
+      //                        newPosition.y + (imageSize.x) / 2.0f - 10);
+      //   node1.setPosition(
+      //       Vector2f(newPosition.x - imageSize.y / 2.0f, newPosition.y));
+      //   node2.setPosition(Vector2f(newPosition.x - imageSize.y / 2.0f,
+      //                              newPosition.y + imageSize.x));
+      // } else if (quadrant == 2) {
+      //   centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f - 15,
+      //                        newPosition.y - (imageSize.y) / 2.0f - 10);
+      //   node1.setPosition(
+      //       Vector2f(newPosition.x, newPosition.y - imageSize.y / 2.0f));
+      //   node2.setPosition(Vector2f(newPosition.x - imageSize.x,
+      //                              newPosition.y - imageSize.y / 2.0f));
 
-      } else if (quadrant == 3) {
-        centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
-                             newPosition.y - (imageSize.x) / 2.0f);
-        node1.setPosition(
-            Vector2f(newPosition.x + imageSize.y / 2.0f, newPosition.y));
-        node2.setPosition(Vector2f(newPosition.x + imageSize.y / 2.0f,
-                                   newPosition.y - imageSize.x));
-      }
+      // } else if (quadrant == 3) {
+      //   dragRect.setPosition(imageSprite.getPosition().x + imageSize.x/2.0f - 15,imageSprite.getPosition().y + imageSize.y/2.0f - 10);
+      //   centerPos = Vector2f(newPosition.x + (imageSize.y) / 2.0f,
+      //                        newPosition.y - (imageSize.x) / 2.0f);
+      //   node1.setPosition(
+      //       Vector2f(newPosition.x + imageSize.y / 2.0f, newPosition.y));
+      //   node2.setPosition(Vector2f(newPosition.x + imageSize.y / 2.0f,
+      //                              newPosition.y - imageSize.x));
+      // }
       imageSprite.setPosition(newPosition);
+      if(OR){
+        input1.setPosition(
+        Vector2f(node1.getPosition().x - 33, node1.getPosition().y - 50));
+        input2.setPosition(
+        Vector2f(node1.getPosition().x - 33, node1.getPosition().y + 3));
+        output.setPosition(Vector2f(node2.getPosition().x - 30, node2.getPosition().y - 23));
+      }
+      else{
       input1.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
+          Vector2f(node1.getPosition().x - 30, node1.getPosition().y - 48));
       input2.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
-      output.setPosition(
-          Vector2f(node2.getPosition().x, node2.getPosition().y));
+          Vector2f(node1.getPosition().x - 30, node1.getPosition().y + 5));
+      output.setPosition(Vector2f(node2.getPosition().x - 19, node2.getPosition().y - 21));
+      }
       dragRect.setPosition(centerPos);
     }
   }
   void startRotating(Vector2f mousePosition) {
-    int x = imageSprite.getRotation();
-    cout << quadrant << endl;
-    imageSprite.setRotation(x + 90);
-
-    if (quadrant == 3) {
-      Vector2f pos(imageSprite.getPosition());
-      Vector2f centerPos(pos.x + (imageSize.x) / 2.0f,
-                         pos.y + (imageSize.y) / 2.0f);
-      node1.setPosition(
-          Vector2f(centerPos.x - imageSize.x / 2.0f, centerPos.y));
-      node2.setPosition(
-          Vector2f(centerPos.x + imageSize.x / 2.0f, centerPos.y));
-      input1.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
-      input2.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
-      output.setPosition(
-          Vector2f(node2.getPosition().x, node2.getPosition().y));
-      dragRect.setPosition(centerPos);
-      quadrant = 0;
-    } else if (quadrant == 0) {
-      Vector2f pos(imageSprite.getPosition());
-      Vector2f centerPos(pos.x - (imageSize.y) / 2.0f,
-                         pos.y + (imageSize.x) / 2.0f);
-
-      node1.setPosition(Vector2f(pos.x - imageSize.y / 2.0f, pos.y));
-      node2.setPosition(
-          Vector2f(pos.x - imageSize.y / 2.0f, pos.y + imageSize.x));
-      dragRect.setPosition(centerPos);
-      input1.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
-      input2.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
-      output.setPosition(
-          Vector2f(node2.getPosition().x, node2.getPosition().y));
-      quadrant++;
-    } else if (quadrant == 1) {
-      Vector2f pos(imageSprite.getPosition());
-      Vector2f centerPos(pos.x - (imageSize.x) / 2.0f,
-                         pos.y - (imageSize.y) / 2.0f);
-      node1.setPosition(Vector2f(pos.x, pos.y - imageSize.y / 2.0f));
-      node2.setPosition(
-          Vector2f(pos.x - imageSize.x, pos.y - imageSize.y / 2.0f));
-      dragRect.setPosition(centerPos);
-      input1.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
-      input2.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
-      output.setPosition(
-          Vector2f(node2.getPosition().x, node2.getPosition().y));
-      quadrant++;
-    } else if (quadrant == 2) {
-      Vector2f pos(imageSprite.getPosition());
-      Vector2f centerPos(pos.x + (imageSize.y) / 2.0f,
-                         pos.y - (imageSize.x) / 2.0f);
-      node1.setPosition(Vector2f(pos.x + imageSize.y / 2.0f, pos.y));
-      node2.setPosition(
-          Vector2f(pos.x + imageSize.y / 2.0f, pos.y - imageSize.x));
-
-      dragRect.setPosition(centerPos);
-      input1.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y - 25));
-      input2.setPosition(
-          Vector2f(node1.getPosition().x - 10, node1.getPosition().y + 20));
-      output.setPosition(
-          Vector2f(node2.getPosition().x, node2.getPosition().y));
-      quadrant++;
-    }
+    //Disabling rotation for gates
   }
   void draw(RenderWindow& window) {
     window.draw(imageSprite);
@@ -469,28 +451,30 @@ class ORGATE : public ANDGATE {
   static const string image;
 
   string label = "ORGATE";
-  ORGATE(ImVec2 pos, Vector2f imgSize, float intialVar)
-      : ANDGATE(pos, imgSize, intialVar) {};
+  ORGATE(ImVec2 pos, Vector2f imgSize, float intialVar) : ANDGATE(pos,imgSize,image) {};
+
 
   virtual void logic() {
+    Color offColor(54, 69, 79);
+    Color onColor(255, 49, 49);
     if (!i0) {
-      input1.setFillColor(Color::Yellow);
+      input1.setFillColor(offColor);
     } else {
-      input1.setFillColor(Color::Red);
+      input1.setFillColor(onColor);
     }
     if (!i1) {
-      input2.setFillColor(Color::Yellow);
+      input2.setFillColor(offColor);
     } else {
-      input2.setFillColor(Color::Red);
+      input2.setFillColor(onColor);
     }
     if (!i0 && !i1) {
-      output.setFillColor(Color::Yellow);
+      output.setFillColor(offColor);
     } else {
-      output.setFillColor(Color::Red);
+      output.setFillColor(onColor);
     }
   }
 };
-const string ORGATE::image = "textures/ball.png";
+const string ORGATE::image = "textures/ORGATE.png";
 
 class Resistor : public Component, public DraggableElement {
   static const string image;
@@ -667,6 +651,19 @@ class Inductor : public Component, public DraggableElement {
 };
 const string Inductor::image = "textures/InductorIcon.png";
 
+class Capacitor: public Component, public DraggableElement{
+  public:
+    static const string image;
+
+    Capacitor(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
+      : Component(),
+        DraggableElement(Vector2f(pos.x, pos.y),imgSize,  image) {
+          cout << "Capacitor is made" << endl;
+        }
+    static const string& getImagePath() { return image; }
+};
+const string Capacitor::image = "textures/CapacitorIcon.png";
+
 class Bulb : public Component, public DraggableElement {
  public:
   static const string image;
@@ -708,61 +705,134 @@ class Bulb : public Component, public DraggableElement {
 const string Bulb::image = "textures/bulb.png";
 
 class Multimeter : public Component, public DraggableElement {
- public:
+  public:
   static const string image;
   RectangleShape inputBox;
+  RectangleShape inputBox2;
+  float value;
+  vector<float> voltageDrop;
+  vector<Text> voltageTexts; 
+   Font font;
 
   Multimeter(ImVec2 pos, Vector2f imgSize)
-      : Component(), DraggableElement(Vector2f(pos.x, pos.y), imgSize, image) {
-    inputBox.setSize(Vector2f(180, 50));
-    inputBox.setPosition(Vector2f(imageSprite.getPosition()));
-    inputBox.setFillColor(Color::Red);
-  };
+      : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize, image) {
+        inputBox.setSize(Vector2f(152,41));
+        inputBox2.setSize(Vector2f(152,102));
+
+        Color input1Color(149, 186, 194);
+        Color input2Color(23, 23, 23);
+        inputBox.setFillColor(input1Color);
+        inputBox2.setFillColor(input2Color);
+
+        if (!font.loadFromFile("notosans.ttf")) { // Specify the path to your font file
+            cout << "Error loading font" << endl;
+            // Handle the error appropriately
+        }
+
+        // Set the font for the main variable text
+        variableText.setFont(font);
+        variableText.setCharacterSize(17); // Set character size for the main variable text
+        variableText.setColor(Color::Black);
+        // variableBox.setOutlineThickness(10);
+        variableText.setStyle(Text::Bold);
+
+      };
   static const string& getImagePath() { return image; }
 
   void draw(RenderWindow& window) {
     window.draw(imageSprite);
     window.draw(dragRect);
     window.draw(inputBox);
+    drawVariableBox(window);
     id++;
   }
+  void drawVariableBox(RenderWindow& window) {
+        ostringstream oss;
+        oss.precision(1);  // Set precision to 1 decimal place
+        oss << fixed << value;
 
-  void updatePosition(Vector2f mousePosition) {
-    mousepox = mousePosition;
-    if (isDragging) {
-      int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
-      int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
+        // Position for the main value box
+        inputBox.setPosition(imageSprite.getPosition().x - 75, imageSprite.getPosition().y - 70);
+        inputBox2.setPosition(imageSprite.getPosition().x - 75 , imageSprite.getPosition().y - 10);
 
-      // Vector2f newPosition(grid[row][col].position.x,
-      //                      grid[row][col].position.y - 3.0f);
-      Vector2f newPosition(grid[row][col].position.x,
-                           grid[row][col].position.y);
+        variableText.setString(oss.str() + " A");  // Use actual variable value
+        variableText.setPosition(inputBox.getPosition().x + 6, inputBox.getPosition().y + 9);
 
-      Vector2f centerPos;
-      centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
-                           newPosition.y + (imageSize.y) / 2.0f);
-      imageSprite.setPosition(newPosition);
-      inputBox.setPosition(imageSprite.getPosition());
-      dragRect.setPosition(centerPos);
+        // Draw the main value box and text
+        window.draw(inputBox);
+        window.draw(inputBox2);
+        window.draw(variableText);
+
+        // Draw voltage drops
+        float yOffset = 0;
+        for (auto& text : voltageTexts) {
+            text.setPosition(inputBox2.getPosition().x + 6, inputBox2.getPosition().y + 5 + yOffset);
+            window.draw(text);
+            yOffset += 20;  // Adjust spacing between texts
+        }
     }
-  }
+   void updatePosition(Vector2f mousePosition) {
+        mousepox = mousePosition;
+        if (isDragging) {
+            int col = static_cast<int>((mousePosition.x + dragOffset.x) / cellSize);
+            int row = static_cast<int>((mousePosition.y + dragOffset.y) / cellSize);
+
+            // Vector2f newPosition(grid[row][col].position.x,
+            //                      grid[row][col].position.y - 3.0f);
+            Vector2f newPosition(grid[row][col].position.x,
+                                 grid[row][col].position.y );
+
+            Vector2f centerPos;
+            centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f,
+                                     newPosition.y + (imageSize.y) / 2.0f);
+            imageSprite.setPosition(newPosition);
+            inputBox.setPosition(imageSprite.getPosition().x - 75,imageSprite.getPosition().y - 69);
+            inputBox2.setPosition(imageSprite.getPosition().x - 100,imageSprite.getPosition().y - 30);
+            dragRect.setPosition(centerPos);
+          } 
+        }
+        void setValue(float val) {
+        value = val;
+        }
+
+      void setVoltageDrop(int id, float volDrop) {
+        voltageDrop.emplace_back(volDrop);
+
+        // Create a new Text object for the voltage drop
+        Text voltageText;
+        ostringstream voltageOss;
+        voltageOss.precision(1);  // Set precision to 1 decimal place
+        voltageOss << fixed << volDrop;
+        voltageText.setString("R" + to_string(id + 1)+ ": " + voltageOss.str() + " V");
+
+        // You need to set the font, character size, and fill color for each text
+        voltageText.setFont(font);
+        voltageText.setCharacterSize(14);
+        voltageText.setFillColor(Color::White);
+        voltageText.setStyle(Text::Bold);
+
+        voltageTexts.push_back(voltageText);  // Add the text to the vector
+    }
 };
 
 const string Multimeter::image = "textures/multimeter.png";
+
 
 class MenuList {
  private:
   vector<Texture> textures;
   vector<ImTextureID> textureIDs;
   int selectedItem;  // Track selected item index
-  string components[10];
+  string components[8];
   bool itemPlaced;
 
  public:
   MenuList()
       : selectedItem(-1),
-        components{"Resistor", "Battery", "Inductor",  "Bulb",  "Multimeter",
-                   "ANDGATE",  "ORGATE",  "Capacitor", "Diode", "Transistor"} {
+
+        components{"Resistor", "Battery",   "Inductor", "Bulb", "Multimeter" ,"Capacitor","ANDGATE",
+                   "ORGATE"} {
+
     // Initialize textures and textureIDs here if necessary
   }
   void setTextures(const vector<Texture>& texs) {
@@ -778,42 +848,42 @@ class MenuList {
     // Define categories for clarity and easier maintenance
     bool printedElectronicDevicesHeader = false;
     bool printedLogicGatesHeader = false;
+    
+    for (size_t i = 0; i < 8; ++i) {
+        // Correct string comparison
+        if (components[i] == "Resistor" && !printedElectronicDevicesHeader) {
+            
+            ImGui::Text("Electronic Devices: ");
+            ImGui::NewLine();
+            printedElectronicDevicesHeader = true;
+        }
+        else if (components[i] == "ANDGATE" && !printedLogicGatesHeader) {
+            ImGui::NewLine();
+            ImGui::NewLine();
+            ImGui::Text("Logic Gates: ");
+            ImGui::NewLine();
+            printedLogicGatesHeader = true;
+        }
+        
+        // Create buttons
+        if (ImGui::Button(components[i].c_str(), ImVec2(75, 30))) {
+            selectedItem = i;
+            itemPlaced = false;
+        }
 
-    for (size_t i = 0; i < 10; ++i) {
-      // Correct string comparison
-      if (components[i] == "Resistor" && !printedElectronicDevicesHeader) {
-        ImGui::Text("Electronic Devices: ");
-        ImGui::NewLine();
-        printedElectronicDevicesHeader = true;
-      } else if (components[i] == "ANDGATE" && !printedLogicGatesHeader) {
-        ImGui::NewLine();
-        ImGui::NewLine();
-        ImGui::Text("Logic Gates: ");
-        ImGui::NewLine();
-        printedLogicGatesHeader = true;
-      }
-
-      // Create buttons
-      if (ImGui::Button(components[i].c_str(), ImVec2(75, 30))) {
-        selectedItem = i;
-        itemPlaced = false;
-        std::cout << "Selected index: " << i << std::endl;
-        std::cout << "Selected: " << components[selectedItem] << std::endl;
-      }
-
-      // Move to the next line after every two buttons
-      if ((i % 2) == 0) {
-        ImGui::SameLine();
-      }
+        // Move to the next line after every two buttons
+        if ((i % 2) == 0) {
+            ImGui::SameLine();
+        }
     }
-
+    
     ImGui::EndChild();
-  }
+}
 
   int getSelectedComponent() const { return selectedItem; }
 
   string getSelectedComponentName() const {
-    if (selectedItem >= 0 && selectedItem < 6) {
+    if (selectedItem >= 0 && selectedItem < 8) {
       return components[selectedItem];
     } else {
       return "";
@@ -836,13 +906,16 @@ class MenuList {
     } else if (type == "Inductor") {
       return new Inductor(pos, Vector2f(80, 40), initialVar);
     } else if (type == "Bulb") {
-      return new Bulb(pos, Vector2f(80, 40), initialVar);
-    } else if (type == "Multimeter") {
-      return new Multimeter(pos, Vector2f(200, 250));
+      return new Bulb(pos,Vector2f(80, 40), initialVar);
+    }else if (type == "Multimeter") {
+      return new Multimeter(pos,Vector2f(200,250));
+    } else if (type == "Capacitor") {
+      return new Capacitor(pos,Vector2f(80, 40), initialVar);
     } else if (type == "ANDGATE") {
-      return new ANDGATE(pos, Vector2f(80, 40), initialVar);
-    } else if (type == "ANDGATE") {
-      return new ORGATE(pos, Vector2f(80, 40), initialVar);
+      return new ANDGATE(pos,Vector2f(170, 105), initialVar);
+    } else if (type == "ORGATE") {
+      return new ORGATE(pos,Vector2f(180, 105), initialVar);
+
     }
 
     // Add more cases as needed
@@ -941,9 +1014,13 @@ int main() {
   // Dynamically load textures from component classes
   vector<Texture> textures;
   vector<string> imagePaths = {
-      Resistor::getImagePath(),   Battery::getImagePath(),
-      Inductor::getImagePath(),   Bulb::getImagePath(),
-      Multimeter::getImagePath(), ANDGATE::getImagePath(),
+      Resistor::getImagePath(),
+      Battery::getImagePath(),
+      Inductor::getImagePath(),
+      Bulb::getImagePath(),
+      Multimeter::getImagePath(),
+      Capacitor::getImagePath(),
+      ANDGATE::getImagePath(),
       ORGATE::getImagePath()
       // Add other component paths as needed
   };
@@ -1086,10 +1163,10 @@ int main() {
       float voltageDrop;
       vector<float> tVD;
       vector<Resistor> resistors;
+      Multimeter* multi;
       for (auto& component : components) {
         Resistor* resistorPtr = dynamic_cast<Resistor*>(component.get());
         Battery* batteryPtr = dynamic_cast<Battery*>(component.get());
-
         if (batteryPtr) {
           totalVoltage += batteryPtr->getVoltage();
         }
@@ -1098,17 +1175,22 @@ int main() {
           totalResistance += resistorPtr->getResistance();
         }
       }
+       for (auto& component : components) {
+          Multimeter* MultimeterPtr = dynamic_cast<Multimeter*>(component.get());
+
+           if(MultimeterPtr){
+            multi = MultimeterPtr;
+            // cout<<"Hell"<<totalVoltage / totalResistance<<endl;
+            MultimeterPtr->setValue(totalVoltage / totalResistance);
+          }
+       }
       for (auto& resistor : resistors) {
         float voltageDrop =
             resistor.getVolatageDrop(totalResistance, totalVoltage);
-        std::cout << "id:" << resistor.id_resistor
-                  << "   ::voltage drop::" << voltageDrop
-                  << ",,resistor ko resistance" << resistor.getResistance()
-                  << std::endl;
+            multi->setVoltageDrop(resistor.id_resistor,voltageDrop);
       }
       resistors.clear();
-      cout << "Total Current Flowing: " << totalVoltage / totalResistance
-           << endl;
+      
     }
     ImGui::EndChild();
 
