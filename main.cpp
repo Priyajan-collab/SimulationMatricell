@@ -56,7 +56,6 @@ class DraggableElement {
   bool on = false;
   bool onagain = false;
   static Font font;
-
   RectangleShape dragRect;  // Invisible rectangle for dragging
   CircleShape node1;
   CircleShape node2;
@@ -69,7 +68,7 @@ class DraggableElement {
   int id_component;
   string label;
   Vector2f mousepox;
-
+  bool isBulb = false;
   // Variable display members
   RectangleShape variableBox;
   Text variableText;
@@ -100,7 +99,7 @@ class DraggableElement {
                        position.y + (imageSize.y) / 2.0f);
 
     dragRect.setSize(rectSize);
-    dragRect.setFillColor(Color::Red);
+    dragRect.setFillColor(Color::Transparent);
 
     // Initialize node1 and node2 positions
     node1.setRadius(radius);
@@ -310,9 +309,6 @@ class ANDGATE : public DraggableElement, public Component {
         Vector2f(node1.getPosition().x - 30, node1.getPosition().y + 5));
     output.setPosition(
         Vector2f(node2.getPosition().x - 19, node2.getPosition().y - 21));
-    // circle.setFillColor(Color::White);
-
-    label = "ANDGATE", cout << "ANDGATE is made" << endl;
   };
   // Constructor for  OR GATE
   ANDGATE(ImVec2 pos, Vector2f imgSize, string image)
@@ -339,9 +335,6 @@ class ANDGATE : public DraggableElement, public Component {
         Vector2f(node1.getPosition().x - 33, node1.getPosition().y + 3));
     output.setPosition(
         Vector2f(node2.getPosition().x - 30, node2.getPosition().y - 23));
-    // circle.setFillColor(Color::White);
-
-    label = "ANDGATE", cout << "ANDGATE is made" << endl;
   };
   virtual void logic() {
     Color offColor(54, 69, 79);
@@ -384,38 +377,6 @@ class ANDGATE : public DraggableElement, public Component {
           Vector2f(newPosition.x, newPosition.y + imageSize.y / 2.0f));
       node2.setPosition(Vector2f(newPosition.x + imageSize.x,
                                  newPosition.y + imageSize.y / 2.0f));
-      // if (quadrant == 0) {
-      //   centerPos = Vector2f(newPosition.x + (imageSize.x) / 2.0f- 15,
-      //                        newPosition.y + (imageSize.y) / 2.0f-10);
-      //   node1.setPosition(
-      //       Vector2f(newPosition.x, newPosition.y + imageSize.y / 2.0f));
-      //   node2.setPosition(Vector2f(newPosition.x + imageSize.x,
-      //                              newPosition.y + imageSize.y / 2.0f));
-      // } else if (quadrant == 1) {
-      //   centerPos = Vector2f(newPosition.x - (imageSize.y) / 2.0f - 15,
-      //                        newPosition.y + (imageSize.x) / 2.0f - 10);
-      //   node1.setPosition(
-      //       Vector2f(newPosition.x - imageSize.y / 2.0f, newPosition.y));
-      //   node2.setPosition(Vector2f(newPosition.x - imageSize.y / 2.0f,
-      //                              newPosition.y + imageSize.x));
-      // } else if (quadrant == 2) {
-      //   centerPos = Vector2f(newPosition.x - (imageSize.x) / 2.0f - 15,
-      //                        newPosition.y - (imageSize.y) / 2.0f - 10);
-      //   node1.setPosition(
-      //       Vector2f(newPosition.x, newPosition.y - imageSize.y / 2.0f));
-      //   node2.setPosition(Vector2f(newPosition.x - imageSize.x,
-      //                              newPosition.y - imageSize.y / 2.0f));
-
-      // } else if (quadrant == 3) {
-      //   dragRect.setPosition(imageSprite.getPosition().x + imageSize.x/2.0f -
-      //   15,imageSprite.getPosition().y + imageSize.y/2.0f - 10); centerPos =
-      //   Vector2f(newPosition.x + (imageSize.y) / 2.0f,
-      //                        newPosition.y - (imageSize.x) / 2.0f);
-      //   node1.setPosition(
-      //       Vector2f(newPosition.x + imageSize.y / 2.0f, newPosition.y));
-      //   node2.setPosition(Vector2f(newPosition.x + imageSize.y / 2.0f,
-      //                              newPosition.y - imageSize.x));
-      // }
       imageSprite.setPosition(newPosition);
       if (OR) {
         input1.setPosition(
@@ -521,7 +482,7 @@ class Resistor : public Component, public DraggableElement {
     if (showInputBox) {
       ImGui::SetNextWindowFocus();
     }
-    ImGui::SetNextWindowSize(ImVec2(150, 80), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Always);
     // Begin the ImGui window
     ImGui::Begin("Set Resistance", nullptr,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
@@ -552,9 +513,7 @@ class Battery : public Component, public DraggableElement {
   Battery(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
       : Component(),
         DraggableElement(Vector2f(pos.x, pos.y), imgSize, image),
-        voltage(initialVar) {
-    cout << "Battery is made" << endl;
-  }
+        voltage(initialVar) {}
 
   static const string& getImagePath() { return image; }
   void TurnOn(bool toggle) {
@@ -671,28 +630,28 @@ const string Capacitor::image = "textures/CapacitorIcon.png";
 class Bulb : public Component, public DraggableElement {
  public:
   static const string image;
-  CircleShape circle;
   bool toggle;
 
   Bulb(ImVec2 pos, Vector2f imgSize, float initialVar = 45.0f)
       : Component(), DraggableElement(Vector2f(pos.x, pos.y), imgSize, image) {
-    circle.setPosition(
-        Vector2f(node1.getPosition().x - 55, node1.getPosition().y - 3));
-    circle.setRadius(radius);
-    circle.setFillColor(Color::Black);
-    // circle.setFillColor(Color::White);
-    // cout << circle.getPosition().x << "," << circle.getPosition().y << endl;
-
-    label = "bulb", cout << "Bulb is made" << endl;
+    isBulb = true;
+    // node1.setPosition(Vector2f(centerPos.x - imageSize.x / 2, centerPos.y));
+    // node2.setPosition(Vector2f(centerPos.x + imageSize.x / 2, centerPos.y));
   };
   static const string& getImagePath() { return image; }
 
   void TurnOn(bool toggle) {
     if (toggle) {
-      circle.setFillColor(Color::Red);
+      if (!imageTexture.loadFromFile("textures/BulbOn.png")) {
+        throw runtime_error("Failed to load image texture");
+      }
+      imageSprite.setTexture(imageTexture);
 
     } else {
-      circle.setFillColor(Color::Black);
+      if (!imageTexture.loadFromFile("textures/BulbOff.png")) {
+        throw runtime_error("Failed to load image texture");
+      }
+      imageSprite.setTexture(imageTexture);
     }
   }
 
@@ -701,12 +660,11 @@ class Bulb : public Component, public DraggableElement {
     window.draw(node1);
     window.draw(node2);
     window.draw(dragRect);
-    window.draw(circle);
     id++;
   }
 };
 
-const string Bulb::image = "textures/bulb.png";
+const string Bulb::image = "textures/BulbOff.png";
 
 class Multimeter : public Component, public DraggableElement {
  public:
@@ -721,6 +679,9 @@ class Multimeter : public Component, public DraggableElement {
 
   Multimeter(ImVec2 pos, Vector2f imgSize)
       : Component(), DraggableElement(Vector2f(pos.x, pos.y), imgSize, image) {
+    dragRect.setSize(Vector2f(100, 100));
+    dragRect.setOrigin(dragRect.getSize().x / 2, dragRect.getSize().y / 2);
+    dragRect.setPosition(imageSprite.getPosition());
     inputBox.setSize(Vector2f(152, 41));
     inputBox2.setSize(Vector2f(152, 102));
 
@@ -743,6 +704,7 @@ class Multimeter : public Component, public DraggableElement {
     // variableBox.setOutlineThickness(10);
     variableText.setStyle(Text::Bold);
   };
+
   static const string& getImagePath() { return image; }
 
   void draw(RenderWindow& window) {
@@ -804,7 +766,7 @@ class Multimeter : public Component, public DraggableElement {
                            imageSprite.getPosition().y - 69);
       inputBox2.setPosition(imageSprite.getPosition().x - 100,
                             imageSprite.getPosition().y - 30);
-      dragRect.setPosition(centerPos);
+      dragRect.setPosition(imageSprite.getPosition());
     }
   }
   void setValue(float val) { value = val; }
@@ -918,7 +880,7 @@ class MenuList {
     } else if (type == "Inductor") {
       return new Inductor(pos, Vector2f(80, 40), initialVar);
     } else if (type == "Bulb") {
-      return new Bulb(pos, Vector2f(80, 40), initialVar);
+      return new Bulb(pos, Vector2f(65, 50), initialVar);
     } else if (type == "Multimeter") {
       return new Multimeter(pos, Vector2f(200, 250));
     } else if (type == "Capacitor") {
@@ -937,35 +899,6 @@ class MenuList {
   void setItemPlaced(bool placed) { itemPlaced = placed; }
 };
 
-class CircuitElement {
- public:
-  bool is_connected = false;
-
-  virtual int connect() const = 0;
-};
-
-class Load : public CircuitElement {
- public:
-  void connect() { is_connected = true; }
-
-  int connect() const override { return is_connected ? 1 : 0; }
-};
-
-class Switch : public CircuitElement {
- public:
-  bool is_switch_on = true;
-
-  int& toggle(int& state, bool click) {
-    if (!click) {
-      is_switch_on = false;
-      state = 0;
-    }
-    return state;
-  }
-
-  int connect() const override { return is_switch_on ? 1 : 0; }
-};
-
 struct Line {
   Vertex points[2];
 
@@ -975,22 +908,7 @@ struct Line {
     points[0].color = Color::Red;
     points[1].color = Color::Red;
   }
-  // int connectedA(int a) {
-  //   if (a) {
-  //     return 1;
-  //   } else {
-  //     return 0;
-  //   }
-  // }
-  // int connectedB() { return 1; }
 };
-
-class connection {
- public:
-  connection() {}
-};
-
-void connectElements() { cout << "trying to connect" << endl; }
 
 int main() {
   int batteryNumber = 0;
@@ -999,6 +917,7 @@ int main() {
   bool batteryAdd = false;
   bool item = false;
   int selectedItem = -1;
+  bool isPressing = false;
 
   vector<Line> lines;
   // DraggableElement::font.loadFromFile("textures/notosans.ttf");
@@ -1057,6 +976,7 @@ int main() {
       }
 
       else if (event.type == Event::MouseButtonPressed) {
+        isPressing = true;
         if (event.mouseButton.button == Mouse::Left) {
           Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
 
@@ -1082,9 +1002,6 @@ int main() {
             }
             // line yeta bata connect hunxa
             if (component->containsNode(mousePosition)) {
-              cout << "contatins : " << component->id_component << endl;
-              connectElements();
-
               lines.push_back(Line(mousePosition, mousePosition));
             }
 
@@ -1103,6 +1020,7 @@ int main() {
           }
         }
       } else if (event.type == Event::MouseButtonReleased) {
+        isPressing = false;
         if (event.mouseButton.button == Mouse::Left) {
           Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
           for (auto& component : components) {
@@ -1158,13 +1076,8 @@ int main() {
 
     menu.drawMenu();
 
-    ImGui::Checkbox("Switch", &switchOn);
-    if (ImGui::Button("switch")) {
-    }
-
     for (auto& component : components) {
       component->TurnOn(switchOn);
-      // cout << component->on << endl;
     }
     if (ImGui::Button("Draw Line")) {
       lineOn = !lineOn;
@@ -1192,7 +1105,6 @@ int main() {
           MultimeterPtr->clearVoltageTexts();
           MultimeterPtr->checkMulti = true;
           multi = MultimeterPtr;
-          // cout<<"Hell"<<totalVoltage / totalResistance<<endl;
           MultimeterPtr->setValue(totalVoltage / totalResistance);
         }
       }
@@ -1210,22 +1122,14 @@ int main() {
 
     // Right content area with grid rendering
     ImGui::BeginChild("Content", ImVec2(0, 0), true, ImGuiWindowFlags_NoResize);
+    ImGui::Text("Simulation Matricelle");
+    ImGui::Spacing();  // Add spacing between the title and the content area
 
     // Draw the grid inside the ImGui child window
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 offset = ImGui::GetCursorScreenPos();
 
     drawGrid(drawList, offset);
-    ;
-    // for (auto& component : components) {
-    //   if (component->label == "bulb") {
-    //     if (switchOn && component->on && component->onagain) {
-    //       component->TurnOn(true);
-    //     } else if (!switchOn | !component->on | !component->onagain) {
-    //       component->TurnOn(false);
-    //     }
-    //   }
-    // }
 
     // Ensure we get the mouse position relative to the window
     ImVec2 mousePos = ImGui::GetMousePos();
@@ -1249,7 +1153,8 @@ int main() {
         window.mapPixelToCoords(Mouse::getPosition(window));
     for (auto& component : components) {
       if (component->variableBox.getGlobalBounds().contains(mousePosition) &&
-          Mouse::isButtonPressed(Mouse::Left) && !component->isDragging) {
+          Mouse::isButtonPressed(Mouse::Left) && !component->isDragging &&
+          !isPressing) {
         component->showInputBox = true;
       }
       if (component->showInputBox) {
