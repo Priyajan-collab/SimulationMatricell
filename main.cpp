@@ -710,9 +710,10 @@ class Multimeter : public Component, public DraggableElement {
   RectangleShape inputBox;
   RectangleShape inputBox2;
   float value;
-  vector<float> voltageDrop;
   vector<Text> voltageTexts; 
+  vector<float> voltageDrop;
    Font font;
+   bool checkMulti = false;
 
   Multimeter(ImVec2 pos, Vector2f imgSize)
       : Component(), DraggableElement(Vector2f(pos.x, pos.y),imgSize, image) {
@@ -754,8 +755,12 @@ class Multimeter : public Component, public DraggableElement {
         // Position for the main value box
         inputBox.setPosition(imageSprite.getPosition().x - 75, imageSprite.getPosition().y - 70);
         inputBox2.setPosition(imageSprite.getPosition().x - 75 , imageSprite.getPosition().y - 10);
-
-        variableText.setString(oss.str() + " A");  // Use actual variable value
+        if(checkMulti){
+          variableText.setString(oss.str() + " A");  // Use actual variable value
+        }
+        else{
+          variableText.setString("0 A");  // Use actual variable value
+        }
         variableText.setPosition(inputBox.getPosition().x + 6, inputBox.getPosition().y + 9);
 
         // Draw the main value box and text
@@ -765,6 +770,7 @@ class Multimeter : public Component, public DraggableElement {
 
         // Draw voltage drops
         float yOffset = 0;
+        
         for (auto& text : voltageTexts) {
             text.setPosition(inputBox2.getPosition().x + 6, inputBox2.getPosition().y + 5 + yOffset);
             window.draw(text);
@@ -796,6 +802,7 @@ class Multimeter : public Component, public DraggableElement {
         }
 
       void setVoltageDrop(int id, float volDrop) {
+        
         voltageDrop.emplace_back(volDrop);
 
         // Create a new Text object for the voltage drop
@@ -812,6 +819,9 @@ class Multimeter : public Component, public DraggableElement {
         voltageText.setStyle(Text::Bold);
 
         voltageTexts.push_back(voltageText);  // Add the text to the vector
+    }
+    void clearVoltageTexts(){
+      voltageTexts.clear();
     }
 };
 
@@ -991,7 +1001,7 @@ int main() {
 
   vector<Line> lines;
   // DraggableElement::font.loadFromFile("textures/notosans.ttf");
-  if (!DraggableElement::font.loadFromFile("textures/notosans.ttf")) {
+  if (!DraggableElement::font.loadFromFile("notosans.ttf")) {
     throw runtime_error("Failed to load font");
   }
 
@@ -1003,7 +1013,7 @@ int main() {
 
   ImGuiIO& io = ImGui::GetIO();
   ImFont* customFont =
-      io.Fonts->AddFontFromFileTTF("textures/notosans.ttf", 18.0f);
+      io.Fonts->AddFontFromFileTTF("notosans.ttf", 18.0f);
 
   ImGui::SFML::UpdateFontTexture();
 
@@ -1177,8 +1187,9 @@ int main() {
       }
        for (auto& component : components) {
           Multimeter* MultimeterPtr = dynamic_cast<Multimeter*>(component.get());
-
            if(MultimeterPtr){
+            MultimeterPtr->clearVoltageTexts();
+            MultimeterPtr->checkMulti = true;
             multi = MultimeterPtr;
             // cout<<"Hell"<<totalVoltage / totalResistance<<endl;
             MultimeterPtr->setValue(totalVoltage / totalResistance);
@@ -1187,6 +1198,7 @@ int main() {
       for (auto& resistor : resistors) {
         float voltageDrop =
             resistor.getVolatageDrop(totalResistance, totalVoltage);
+
             multi->setVoltageDrop(resistor.id_resistor,voltageDrop);
       }
       resistors.clear();
